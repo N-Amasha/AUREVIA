@@ -21,6 +21,16 @@ import CustomerBrowseMenuPage from "../pages/menu/CustomerBrowseMenuPage";
 import CustomizeCateringMenuPage from "../pages/menu/CustomizeCateringMenuPage";
 import FoodRecommendationsPage from "../pages/menu/FoodRecommendationsPage";
 import SavedPackagesPage from "../pages/menu/SavedPackagesPage";
+import CustomerEventsPage from "../pages/events/CustomerEventsPage";
+import EventDetailsPage from "../pages/events/EventDetailsPage";
+import EventFeedbackPage from "../pages/events/EventFeedbackPage";
+import EventCoordinatorLayout from "../layouts/EventCoordinatorLayout";
+import EventCoordinatorDashboardPage from "../pages/events/EventCoordinatorDashboardPage";
+import ManageEventsPage from "../pages/events/ManageEventsPage";
+import CoordinatorEventDetailsPage from "../pages/events/CoordinatorEventDetailsPage";
+import EventTimelinesPage from "../pages/events/EventTimelinesPage";
+import VendorManagementPage from "../pages/events/VendorManagementPage";
+import FeedbackInsightsPage from "../pages/events/FeedbackInsightsPage";
 
 export default function AppRoutes() {
   return (
@@ -113,9 +123,54 @@ export default function AppRoutes() {
       element={<SavedPackagesPage />}
     />
 
-  </Route>
+    <Route path="events" element={<CustomerEventsPage />} />
 
+    <Route
+      path="events/:eventId"
+      element={<EventDetailsPage />}
+    />
 
+    <Route
+      path="events/:eventId/feedback"
+      element={<EventFeedbackPage />}
+    />
+
+    </Route>
+
+    <Route
+  path="/event-coordinator"
+  element={<EventCoordinatorLayout />}
+>
+  <Route
+    index
+    element={<EventCoordinatorDashboardPage />}
+  />
+
+  <Route
+    path="events"
+    element={<ManageEventsPage />}
+  />
+
+  <Route
+    path="events/:eventId"
+    element={<CoordinatorEventDetailsPage />}
+  />
+
+  <Route
+  path="timelines"
+  element={<EventTimelinesPage />}
+/>
+
+<Route
+  path="vendors"
+  element={<VendorManagementPage />}
+/>
+
+<Route
+  path="feedback"
+  element={<FeedbackInsightsPage />}
+/>
+</Route>
     
 
     </Routes>
