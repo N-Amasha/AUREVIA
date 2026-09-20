@@ -10,6 +10,7 @@ import InventoryManagerLayout from "../layouts/InventoryManagerLayout";
 import HRManagerLayout from "../layouts/HRManagerLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
+
 // Public Pages
 import HomePage from "../pages/public/HomePage";
 import DiningPage from "../pages/public/DiningPage";
@@ -24,11 +25,15 @@ import RegisterPage from "../pages/auth/RegisterPage";
 // Customer
 import CustomerDashboardPage from "../pages/customer/CustomerDashboardPage";
 import ReservationsPage from "../pages/customer/ReservationsPage";
+import CustomerProfilePage from "../pages/customer/CustomerProfilePage";
+import CustomerFeedbackPage from "../pages/events/CustomerFeedbackPage";
 
 // Customer Reservations
 import NewTableReservationPage from "../pages/reservation/NewTableReservationPage";
 import NewVenueBookingPage from "../pages/reservation/NewVenueBookingPage";
 import ReservationHistoryPage from "../pages/reservation/ReservationHistoryPage";
+import TableReservationDetailsPage from "../pages/reservation/TableReservationDetailsPage";
+import VenueBookingDetailsPage from "../pages/reservation/VenueBookingDetailsPage";
 
 // Customer Menu
 import CustomerMenuPage from "../pages/menu/CustomerMenuPage";
@@ -104,6 +109,8 @@ import ChefDashboardPage from "../pages/menu/ChefDashboardPage";
 import MenuItemManagementPage from "../pages/menu/MenuItemManagementPage";
 import MenuCategoriesPage from "../pages/menu/MenuCategoriesPage";
 import DietaryAllergenPage from "../pages/menu/DietaryAllergenPage";
+
+import NotFoundPage from "../pages/errors/NotFoundPage";
 
 
 export default function AppRoutes() {
@@ -190,6 +197,26 @@ export default function AppRoutes() {
         <Route
           path="billing/history"
           element={<CustomerPaymentHistoryPage />}
+        />
+
+        <Route
+          path="profile"
+          element={<CustomerProfilePage />}
+        />
+
+        <Route
+          path="reservations/table/:reservationId"
+          element={<TableReservationDetailsPage />}
+        />
+
+        <Route
+          path="reservations/venue/:bookingId"
+          element={<VenueBookingDetailsPage />}
+        />
+
+        <Route
+          path="feedback"
+          element={<CustomerFeedbackPage />}
         />
       </Route>
 
@@ -334,6 +361,9 @@ export default function AppRoutes() {
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
+
+      {/* ================= 404 ================= */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
