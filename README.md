@@ -4,7 +4,7 @@
 
 AUREVIA is a web-based restaurant and event management system designed to connect customer-facing dining and event experiences with the operational activities required to manage reservations, menus, events, billing, inventory, and staff.
 
-The project is being developed using a modular architecture with a React frontend and a Spring Boot backend.
+The project follows a modular full-stack architecture. The current repository contains a developed React frontend, while the Java Spring Boot backend and MySQL integration are planned as the next major development phase.
 
 ---
 
@@ -12,52 +12,75 @@ The project is being developed using a modular architecture with a React fronten
 
 Restaurant and event operations involve multiple connected processes. A reservation may affect billing, menu planning, inventory requirements, event coordination, and staff allocation.
 
-AUREVIA is designed to bring these processes together within one system while providing appropriate functionality for customers and authorized staff members.
+AUREVIA brings these processes together within one system while providing dedicated interfaces for customers and authorized staff roles.
 
-### Core Functional Areas
+The system is organized around six core functional areas.
 
-1. **Table & Event Venue Reservation**
-   - Table and venue reservation management
-   - Availability checking
-   - Reservation status tracking
-   - Venue pricing support
+### 1. Table & Event Venue Reservation
 
-2. **Menu Customization & Recommendation**
-   - Menu browsing and management
-   - Dietary and allergen information
-   - Menu customization
-   - Customer preference support
-   - Food recommendation functionality
+- Table reservation
+- Event venue booking
+- Availability checking
+- Reservation history
+- Reservation status tracking
+- Restaurant table management
+- Venue management
+- Pricing-rule management
+- Reservation management
 
-3. **Event Coordination & Customer Feedback**
-   - Event management
-   - Event timeline tracking
-   - Vendor coordination
-   - Staff requirement coordination
-   - Customer feedback
-   - Sentiment analysis support
+### 2. Menu Customization & Recommendation
 
-4. **Billing & Payment Management**
-   - Invoice management
-   - Bank payment slip upload
-   - Manual payment verification by cashier
-   - Payment approval and rejection
-   - Payment status tracking
+- Public menu browsing
+- Menu item management
+- Menu categories
+- Catering menu customization
+- Dietary and allergen information
+- Saved catering packages
+- Customer preference support
+- Explainable food recommendation filtering
 
-5. **Smart Inventory & Food Waste Management**
-   - Inventory management
-   - Stock tracking
-   - Low-stock monitoring
-   - Ingredient usage
-   - Food waste recording
-   - Reorder recommendation support
+### 3. Event Coordination & Customer Feedback
 
-6. **Staff Management & Predictive Staff Allocation**
-   - Staff management
-   - Shift scheduling
-   - Staff assignments
-   - Attendance and performance information
-   - Demand-based staff allocation support
+- Customer event management
+- Event details
+- Event coordination
+- Event timeline tracking
+- Vendor management
+- Customer feedback
+- Feedback insights
+- Sentiment-analysis integration support
+
+### 4. Billing & Payment Management
+
+- Customer invoice viewing
+- Invoice details
+- Bank payment slip upload
+- Payment history
+- Cashier invoice management
+- Payment verification queue
+- Manual payment approval/rejection workflow
+- Payment status tracking
+
+### 5. Smart Inventory & Food Waste Management
+
+- Inventory dashboard
+- Inventory item management
+- Item details
+- Stock management
+- Low-stock monitoring
+- Inventory usage
+- Food waste recording
+- Explainable reorder recommendations
+
+### 6. Staff Management & Predictive Staff Allocation
+
+- Staff management
+- Staff details
+- Shift scheduling
+- Staff assignments
+- Attendance
+- Leave requests
+- Demand-based staff allocation recommendations
 
 ---
 
@@ -65,37 +88,47 @@ AUREVIA is designed to bring these processes together within one system while pr
 
 AUREVIA is designed as a connected system rather than six isolated modules.
 
-Examples include:
+### Reservation and Payment
 
 ```text
-Reservation
-    ↓
+Reservation Request
+        ↓
 Invoice
-    ↓
-Payment Slip
-    ↓
+        ↓
+Bank Payment Slip
+        ↓
 Cashier Verification
-    ↓
+        ↓
+Payment Status
+        ↓
 Reservation Confirmation
 ```
 
+### Menu, Order, and Inventory
+
 ```text
 Menu / Order
-    ↓
+      ↓
 Confirmed Order
-    ↓
+      ↓
 Ingredient Usage
-    ↓
+      ↓
 Inventory Update
 ```
+
+### Demand and Staff Allocation
 
 ```text
 Reservations + Events
         ↓
 Expected Demand
         ↓
+Staff Recommendation
+        ↓
 Staff Allocation
 ```
+
+### Event Feedback
 
 ```text
 Completed Event
@@ -103,13 +136,17 @@ Completed Event
 Customer Feedback
       ↓
 Sentiment Analysis
+      ↓
+Management Insight
 ```
+
+These workflows describe the intended integrated system behavior. Backend persistence and cross-module business logic are not yet connected.
 
 ---
 
 ## Technology Stack
 
-### Frontend
+### Frontend — Implemented
 
 - React
 - Vite
@@ -119,7 +156,7 @@ Sentiment Analysis
 - Axios
 - Lucide React
 
-### Backend
+### Backend — Planned
 
 - Java
 - Spring Boot
@@ -130,15 +167,269 @@ Sentiment Analysis
 - JWT-based authentication
 - Role-based authorization
 
-### Database
+### Database — Planned
 
 - MySQL
 
 ---
 
+## Current Implementation Status
+
+The project has completed a substantial **frontend baseline** covering the public website, customer experience, and role-specific management workspaces.
+
+The frontend currently demonstrates system workflows and interface architecture without pretending that backend persistence or authorization already exists.
+
+### Implemented in the Frontend
+
+- [x] Public website
+- [x] Login interface
+- [x] Registration interface
+- [x] Customer workspace
+- [x] Restaurant Manager workspace
+- [x] Chef workspace
+- [x] Event Coordinator workspace
+- [x] Cashier workspace
+- [x] Inventory Manager workspace
+- [x] HR Manager workspace
+- [x] Administrator workspace
+- [x] Responsive role navigation
+- [x] Dynamic detail routes
+- [x] Empty/loading/interface states
+- [x] 404 route handling
+- [x] Reusable UI component system
+
+### Not Yet Implemented
+
+- [ ] Spring Boot backend
+- [ ] MySQL persistence
+- [ ] REST API integration
+- [ ] Real authentication
+- [ ] JWT generation and validation
+- [ ] Spring Security authorization
+- [ ] Protected frontend routes
+- [ ] Backend-enforced role permissions
+- [ ] Persistent CRUD operations
+- [ ] Real-time reservation availability
+- [ ] Backend pricing engine
+- [ ] Persistent invoice/payment processing
+- [ ] Persistent inventory updates
+- [ ] Sentiment-analysis processing
+- [ ] End-to-end frontend/backend testing
+
+---
+
+## Frontend Workspaces
+
+### Public Website
+
+The public experience includes:
+
+- Home
+- Dining
+- Menu
+- Events
+- About
+- Login
+- Registration
+
+Public dining availability is currently an interface preview. It must not be interpreted as real-time availability until the backend reservation service is connected.
+
+Menu and event content used for demonstration may come from local frontend data.
+
+---
+
+### Customer Workspace
+
+Base route:
+
+```text
+/customer
+```
+
+The customer experience includes:
+
+- Dashboard
+- Profile
+- Table reservation
+- Event venue booking
+- Reservation history
+- Reservation details
+- Menu browsing
+- Catering menu customization
+- Food recommendations
+- Saved packages
+- My Events
+- Event details
+- Billing & Payments
+- Invoices
+- Invoice details
+- Bank payment slip upload
+- Payment history
+- Feedback
+
+Dynamic reservation-detail routes are supported in the frontend:
+
+```text
+/customer/reservations/table/:reservationId
+/customer/reservations/venue/:bookingId
+```
+
+These route parameters currently demonstrate navigation structure. Actual records will be retrieved from backend APIs later.
+
+---
+
+### Restaurant Manager Workspace
+
+Base route:
+
+```text
+/restaurant-manager
+```
+
+Includes:
+
+- Dashboard
+- Reservation management
+- Restaurant table management
+- Event venue management
+- Pricing-rule management
+
+The frontend does not currently perform real availability checks or pricing calculations.
+
+---
+
+### Chef Workspace
+
+Base route:
+
+```text
+/chef
+```
+
+Includes:
+
+- Dashboard
+- Menu item management
+- Menu categories
+- Dietary and allergen information
+
+Menu management will eventually provide authoritative menu information to customer-facing menu and recommendation functionality.
+
+---
+
+### Event Coordinator Workspace
+
+Base route:
+
+```text
+/event-coordinator
+```
+
+Includes:
+
+- Dashboard
+- Event management
+- Event details
+- Event timelines
+- Vendor management
+- Feedback insights
+
+Sentiment results are not fabricated in the frontend. Sentiment processing will be integrated separately.
+
+---
+
+### Cashier Workspace
+
+Base route:
+
+```text
+/cashier
+```
+
+Includes:
+
+- Dashboard
+- Invoice management
+- Payment verification queue
+- Payment verification details
+- Payment history
+
+AUREVIA does not currently use an online payment gateway.
+
+The intended payment workflow is based on customer bank-payment-slip submission followed by manual cashier verification.
+
+---
+
+### Inventory Manager Workspace
+
+Base route:
+
+```text
+/inventory
+```
+
+Includes:
+
+- Dashboard
+- Inventory items
+- Inventory item details
+- Stock management
+- Low-stock monitoring
+- Waste management
+- Reorder recommendations
+
+Reorder recommendations are currently represented as an explainable decision-support workflow. They do not automatically create purchases.
+
+---
+
+### HR Manager Workspace
+
+Base route:
+
+```text
+/hr
+```
+
+Includes:
+
+- Dashboard
+- Staff management
+- Staff details
+- Shift scheduling
+- Staff assignments
+- Attendance
+- Leave management
+- Staff allocation recommendations
+
+Staff allocation recommendations are decision support only and do not automatically modify shifts or assignments.
+
+---
+
+### Administrator Workspace
+
+Base route:
+
+```text
+/admin
+```
+
+Includes:
+
+- Dashboard
+- User management
+- Role management
+- Reports
+- Settings
+
+Current role-specific frontend layouts provide interface separation only.
+
+Actual security boundaries must be enforced by Spring Security and backend authorization.
+
+---
+
 ## Frontend Architecture
 
-The frontend follows a feature-oriented structure with reusable UI components, layouts, route configuration, services, shared data, and module-specific pages.
+The frontend follows a feature-oriented structure with reusable components, layouts, routes, data, services, and module-specific pages.
 
 ```text
 src/
@@ -181,21 +472,9 @@ src/
 
 ---
 
-## Frontend Progress
+## Reusable Frontend Components
 
-### Foundation
-
-- [x] React + Vite project setup
-- [x] Tailwind CSS configuration
-- [x] React Router setup
-- [x] Reusable design system
-- [x] Responsive public layout
-- [x] Shared Navbar
-- [x] Shared Footer
-
-### Reusable Components
-
-The frontend currently includes reusable components for:
+The design system includes reusable components for:
 
 - Buttons
 - Cards
@@ -212,158 +491,15 @@ The frontend currently includes reusable components for:
 - Checkboxes
 - File uploads
 
-### Public Website
-
-- [x] Home
-- [x] Dining
-- [x] Menu
-- [x] Events
-- [x] About
-
-### Authentication
-
-- [ ] Authentication layout
-- [ ] Login interface
-- [ ] Registration interface
-- [ ] JWT integration
-- [ ] Protected routes
-- [ ] Role-based route access
-
-### Customer Module
-
-- [ ] Customer dashboard
-- [ ] Profile
-- [ ] Reservations
-- [ ] Menu customization
-- [ ] Recommendations
-- [ ] Events
-- [ ] Invoices
-- [ ] Payment slip upload
-- [ ] Payment status
-- [ ] Feedback
-
-### Management Modules
-
-- [ ] Reservation management
-- [ ] Menu management
-- [ ] Event coordination
-- [ ] Billing and payment verification
-- [ ] Inventory and waste management
-- [ ] Staff management and allocation
-- [ ] Administration and reporting
-
----
-
-## Public Frontend Features
-
-### Home
-
-The Home page introduces the AUREVIA dining and event experience and provides navigation to the main public functionality.
-
-### Dining
-
-The Dining page currently provides:
-
-- Dining experience information
-- Date, time, and guest selection interface
-- Dining option previews
-- Reservation process explanation
-
-The availability interface is currently a **frontend preview**. Real availability will be provided by the backend reservation service after integration.
-
-### Menu
-
-The Menu page currently provides:
-
-- Menu category filtering
-- Menu search
-- Dietary labels
-- Allergen information
-- Customer dietary preference selection
-- Recommendation interface preview
-
-Menu records and prices currently shown in the frontend are **demonstration data**.
-
-The recommendation interface currently demonstrates the user experience only. Recommendation logic will be connected separately.
-
-### Events
-
-The Events page currently provides:
-
-- Event type filtering
-- Wedding event information
-- Corporate event information
-- Celebration event information
-- Private event information
-- Event coordination process explanation
-
-The coordination journey demonstrates the intended flow:
-
-```text
-Event Request
-    ↓
-Venue Options
-    ↓
-Dining Customization
-    ↓
-Resource Coordination
-    ↓
-Progress Tracking
-    ↓
-Customer Feedback
-```
-
-Venue availability and actual event records will be provided by backend services after integration.
-
-### About
-
-The About page explains:
-
-- The purpose of AUREVIA
-- The six core functional areas
-- Role-based system access
-- Connections between system modules
-- Major operational workflows
-
----
-
-## Current Development Status
-
-The **public frontend milestone is complete**.
-
-Current development focus:
-
-```text
-Public Website       COMPLETE
-        ↓
-Authentication       NEXT
-        ↓
-Customer Experience
-        ↓
-Reservation Management
-        ↓
-Menu Management & Recommendations
-        ↓
-Event Coordination & Sentiment Analysis
-        ↓
-Billing & Payment Verification
-        ↓
-Inventory & Waste Management
-        ↓
-Staff Management & Allocation
-        ↓
-Administration
-        ↓
-Backend Integration & Final Testing
-```
+The frontend uses a consistent visual system based on warm ivory backgrounds, deep emerald tones, warm gold accents, and responsive layouts.
 
 ---
 
 ## Payment Workflow
 
-AUREVIA does **not currently use an online payment gateway**.
+AUREVIA does **not** use a real online payment gateway in the current design.
 
-The intended payment workflow is:
+The intended workflow is:
 
 ```text
 Customer Reservation
@@ -381,79 +517,144 @@ Payment Status Updated
 Reservation Confirmation
 ```
 
-This allows payment verification to remain under authorized cashier control.
+This keeps payment verification under authorized cashier control.
+
+The current frontend represents this workflow, while actual file storage, payment records, verification rules, and reservation updates will be implemented through the backend.
 
 ---
 
 ## Recommendation & Intelligent Features
 
-AUREVIA is designed to support explainable intelligent features such as:
+AUREVIA includes several areas intended to provide explainable intelligent assistance.
 
-- Food recommendations
-- Sentiment analysis
-- Inventory reorder recommendations
-- Demand-based staff allocation
+### Food Recommendations
 
-During frontend development, these areas may contain clearly identified preview interfaces.
+The current frontend demonstrates rule-based filtering using information such as:
 
-The recommendation and prediction logic will be implemented separately and integrated through backend services.
+- Customer dietary preferences
+- Dietary classifications
+- Allergen exclusions
+- Menu-item information
 
----
+This is currently an explainable recommendation preview, not a trained machine-learning model.
 
-## Development Principles
+### Inventory Reorder Recommendations
 
-The project follows several development principles:
+The interface represents reorder decision support based on inventory information.
 
-- Modular architecture
-- Reusable UI components
-- Separation of presentation and data
-- Responsive design
-- Role-based access
-- Clear frontend/backend separation
-- Explainable recommendation logic
-- No hard-coded authentication credentials
-- No exposed secrets in the repository
-- Git-based version control
-- Incremental development and testing
+Recommendations do not automatically create supplier orders.
 
----
+### Staff Allocation Recommendations
 
-## Running the Frontend
+The interface represents demand-based staff allocation support.
 
-Navigate to the frontend project directory and install dependencies:
+Recommendations do not automatically modify employee schedules.
 
-```bash
-npm install
-```
+### Sentiment Analysis
 
-Start the development server:
+Customer feedback can later be processed for sentiment analysis.
 
-```bash
-npm run dev
-```
-
-Create a production build:
-
-```bash
-npm run build
-```
+The frontend does not fabricate sentiment classifications when no analysis has been performed.
 
 ---
 
 ## Current Frontend Data
 
-Some public pages currently use local structured demonstration data during frontend development.
+Some frontend areas currently use local structured demonstration data.
 
-For example:
+Examples may include:
 
 ```text
 src/data/menuData.js
 src/data/eventData.js
 ```
 
-This keeps demonstration data separate from page presentation logic.
+Demonstration data is kept separate from page presentation where possible.
 
-During backend integration, these local sources can be replaced by API responses through the frontend service layer.
+During backend integration, these sources will be replaced by REST API responses through the frontend service layer.
+
+Backend-dependent dashboards and management tables intentionally use empty states or `—` values instead of fabricated operational records.
+
+---
+
+## Authentication & Security Status
+
+Login and registration interfaces are implemented, but authentication is **not yet connected to a backend**.
+
+The current frontend does not:
+
+- Validate credentials against a database
+- Generate JWT tokens
+- Protect routes using authenticated sessions
+- Enforce staff roles
+- Provide backend authorization
+
+Role-specific layouts currently demonstrate the intended user experience only.
+
+The planned backend security architecture will use:
+
+```text
+Spring Security
+      +
+JWT Authentication
+      +
+Role-Based Authorization
+```
+
+Passwords must be securely hashed by the backend and must never be stored or returned as plain text.
+
+Database passwords, JWT secrets, API keys, and environment-specific credentials must not be committed to the repository.
+
+---
+
+## Availability & Pricing Status
+
+Reservation and venue availability interfaces currently demonstrate the intended interaction.
+
+They are **not real-time availability checks**.
+
+The future backend will be responsible for:
+
+- Reading existing reservations
+- Detecting booking conflicts
+- Validating capacity
+- Applying applicable pricing rules
+- Preventing double booking
+- Returning authoritative availability and price information
+
+Pricing formulas should remain backend-authoritative rather than being trusted to the browser.
+
+---
+
+## Running the Frontend
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/N-Amasha/AUREVIA.git
+```
+
+### 2. Open the project directory
+
+Navigate to the frontend project directory.
+
+### 3. Install dependencies
+
+```bash
+npm install
+```
+
+### 4. Start the development server
+
+```bash
+npm run dev
+```
+
+### 5. Create a production build
+
+```bash
+npm run build
+```
 
 ---
 
@@ -465,20 +666,66 @@ Development screenshots are stored in:
 docs/screenshots/
 ```
 
-They document major frontend milestones and reusable components during implementation.
+They document major frontend milestones including public pages, customer functionality, and role-specific management workspaces.
 
 ---
 
-## Security
+## Development Principles
 
-Sensitive information such as database passwords, JWT secrets, API keys, and environment-specific credentials must not be committed to the repository.
+AUREVIA follows these development principles:
 
-Authentication and authorization will be implemented using Spring Security, JWT, and role-based access control.
+- Modular architecture
+- Reusable UI components
+- Responsive design
+- Separation of presentation and data
+- Clear frontend/backend boundaries
+- Explainable recommendation logic
+- Backend-authoritative business rules
+- No fake authentication
+- No hard-coded credentials
+- No exposed secrets
+- Git-based version control
+- Incremental development and testing
 
 ---
 
-## Development
+## Next Development Phase
+
+The next major phase is backend implementation and frontend integration.
+
+```text
+Frontend Baseline
+      COMPLETE
+          ↓
+Spring Boot Project Setup
+          ↓
+MySQL Configuration
+          ↓
+EER → JPA Entity Mapping
+          ↓
+Repositories
+          ↓
+Service Layer
+          ↓
+REST Controllers
+          ↓
+Spring Security + JWT
+          ↓
+Role-Based Authorization
+          ↓
+Frontend Axios Integration
+          ↓
+Persistent Business Workflows
+          ↓
+End-to-End Testing
+```
+
+The backend will be developed from the finalized system requirements and database design rather than from fabricated frontend data.
+
+---
+
+## Development Status
 
 AUREVIA is under active development.
 
-The current implementation focuses on establishing a reusable frontend architecture and completing the public customer-facing experience before moving into authentication and role-specific system modules.
+The current repository provides a broad frontend implementation of the intended restaurant and event management experience. The next phase will convert these interfaces into persistent, secured, data-driven workflows through Java Spring Boot and MySQL.
