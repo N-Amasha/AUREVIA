@@ -98,6 +98,13 @@ import TableManagementPage from "../pages/reservation/TableManagementPage";
 import VenueManagementPage from "../pages/reservation/VenueManagementPage";
 import PricingRulesPage from "../pages/reservation/PricingRulesPage";
 
+// Chef
+import ChefLayout from "../layouts/ChefLayout";
+import ChefDashboardPage from "../pages/menu/ChefDashboardPage";
+import MenuItemManagementPage from "../pages/menu/MenuItemManagementPage";
+import MenuCategoriesPage from "../pages/menu/MenuCategoriesPage";
+import DietaryAllergenPage from "../pages/menu/DietaryAllergenPage";
+
 
 export default function AppRoutes() {
   return (
@@ -215,6 +222,26 @@ export default function AppRoutes() {
          <Route
           path="pricing"
           element={<PricingRulesPage />}
+        />
+      </Route>
+
+      {/* ================= CHEF ================= */}
+      <Route path="chef" element={<ChefLayout />}>
+        <Route index element={<ChefDashboardPage />} />
+
+        <Route
+          path="menu-items"
+          element={<MenuItemManagementPage />}
+        />
+
+        <Route
+          path="categories"
+          element={<MenuCategoriesPage />}
+        />
+
+        <Route
+          path="dietary"
+          element={<DietaryAllergenPage />}
         />
       </Route>
 
