@@ -50,6 +50,15 @@ import StockTransactionsPage from "../pages/inventory/StockTransactionsPage";
 import LowStockPage from "../pages/inventory/LowStockPage";
 import WasteRecordsPage from "../pages/inventory/WasteRecordsPage";
 import ReorderRecommendationsPage from "../pages/inventory/ReorderRecommendationsPage";
+import HRManagerLayout from "../layouts/HRManagerLayout";
+import HRDashboardPage from "../pages/staff/HRDashboardPage";
+import StaffManagementPage from "../pages/staff/StaffManagementPage";
+import StaffDetailsPage from "../pages/staff/StaffDetailsPage";
+import ShiftManagementPage from "../pages/staff/ShiftManagementPage";
+import StaffAssignmentsPage from "../pages/staff/StaffAssignmentsPage";
+import AttendanceManagementPage from "../pages/staff/AttendanceManagementPage";
+import LeaveRequestsPage from "../pages/staff/LeaveRequestsPage";
+import StaffAllocationPage from "../pages/staff/StaffAllocationPage";
 
 export default function AppRoutes() {
   return (
@@ -276,6 +285,50 @@ export default function AppRoutes() {
         <Route
           path="recommendations"
           element={<ReorderRecommendationsPage />}
+        />
+      </Route>
+
+      <Route
+        path="/hr"
+        element={<HRManagerLayout />}
+      >
+        <Route
+          index
+          element={<HRDashboardPage />}
+        />
+        <Route
+          path="staff"
+          element={<StaffManagementPage />}
+        />
+
+        <Route
+          path="staff/:staffId"
+          element={<StaffDetailsPage />}
+        />
+
+        <Route
+          path="shifts"
+          element={<ShiftManagementPage />}
+        />
+
+        <Route
+          path="assignments"
+          element={<StaffAssignmentsPage />}
+        />
+
+        <Route
+          path="attendance"
+          element={<AttendanceManagementPage />}
+        />
+
+        <Route
+          path="leave"
+          element={<LeaveRequestsPage />}
+        />
+
+        <Route
+          path="allocation"
+          element={<StaffAllocationPage />}
         />
       </Route>
                   
