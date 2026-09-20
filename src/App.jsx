@@ -1,75 +1,60 @@
 import { useState } from "react";
+import { CalendarDays } from "lucide-react";
 
-import Tabs from "./components/ui/Tabs";
-import Card from "./components/ui/Card";
+import Button from "./components/ui/Button";
+import Loading from "./components/ui/Loading";
+import EmptyState from "./components/ui/EmptyState";
 
 function App() {
-  const [activeTab, setActiveTab] = useState("all");
-
-  const tabs = [
-    {
-      label: "All Reservations",
-      value: "all",
-      count: 12,
-    },
-    {
-      label: "Pending",
-      value: "pending",
-      count: 4,
-    },
-    {
-      label: "Confirmed",
-      value: "confirmed",
-      count: 6,
-    },
-    {
-      label: "Cancelled",
-      value: "cancelled",
-      count: 2,
-    },
-  ];
-
-  const content = {
-    all: "Showing all reservations.",
-    pending: "Showing reservations waiting for confirmation.",
-    confirmed: "Showing confirmed reservations.",
-    cancelled: "Showing cancelled reservations.",
-  };
+  const [loading, setLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-cream-50 px-6 py-16">
       <div className="mx-auto max-w-4xl">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold-500">
-          Aurevia Management
+          Aurevia Design System
         </p>
 
         <h1 className="mt-3 text-4xl font-bold text-primary-900">
-          Reservation Management
+          Data States
         </h1>
 
         <p className="mt-2 text-stone-500">
-          Filter reservations according to their current status.
+          Reusable loading and empty states for Aurevia modules.
         </p>
 
-        <Card className="mt-10" padding="none">
-          <div className="px-6 pt-4">
-            <Tabs
-              tabs={tabs}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-            />
-          </div>
+        <div className="mt-10 rounded-2xl border border-stone-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-stone-900">
+            Loading State
+          </h2>
 
-          <div className="p-6">
-            <p className="text-sm text-stone-600">
-              {content[activeTab]}
-            </p>
-          </div>
-        </Card>
+          {loading ? (
+            <Loading message="Loading reservations..." />
+          ) : (
+            <div className="py-8 text-center">
+              <p className="mb-4 text-sm text-stone-500">
+                Click below to preview the loading state.
+              </p>
 
-        <p className="mt-4 text-xs text-stone-400">
-          Active tab: {activeTab}
-        </p>
+              <Button onClick={() => setLoading(true)}>
+                Show Loading
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8">
+          <EmptyState
+            icon={CalendarDays}
+            title="No Reservations Yet"
+            message="There are currently no table or venue reservations to display."
+            action={
+              <Button>
+                Create Reservation
+              </Button>
+            }
+          />
+        </div>
       </div>
     </div>
   );
