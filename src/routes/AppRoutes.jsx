@@ -16,6 +16,11 @@ import ReservationsPage from "../pages/customer/ReservationsPage";
 import NewTableReservationPage from "../pages/reservation/NewTableReservationPage";
 import NewVenueBookingPage from "../pages/reservation/NewVenueBookingPage";
 import ReservationHistoryPage from "../pages/reservation/ReservationHistoryPage";
+import CustomerMenuPage from "../pages/menu/CustomerMenuPage";
+import CustomerBrowseMenuPage from "../pages/menu/CustomerBrowseMenuPage";
+import CustomizeCateringMenuPage from "../pages/menu/CustomizeCateringMenuPage";
+import FoodRecommendationsPage from "../pages/menu/FoodRecommendationsPage";
+import SavedPackagesPage from "../pages/menu/SavedPackagesPage";
 
 export default function AppRoutes() {
   return (
@@ -86,7 +91,31 @@ export default function AppRoutes() {
       path="reservations/history"
       element={<ReservationHistoryPage />}
     />
+
+    <Route path="menu" element={<CustomerMenuPage />} />
+    <Route
+      path="menu/browse"
+      element={<CustomerBrowseMenuPage />}
+    />
+
+    <Route
+      path="menu/customize"
+      element={<CustomizeCateringMenuPage />}
+    />
+
+    <Route
+      path="menu/recommendations"
+      element={<FoodRecommendationsPage />}
+    />
+
+    <Route
+      path="menu/saved"
+      element={<SavedPackagesPage />}
+    />
+
   </Route>
+
+
     
 
     </Routes>
