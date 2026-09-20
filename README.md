@@ -1,57 +1,109 @@
 # AUREVIA
 
-### Restaurant & Event Management System
+**Restaurant & Event Management System**
 
-AUREVIA is a modern web-based Restaurant and Event Management System designed to bring restaurant operations, event coordination, customer services, payments, inventory management, and staff management into one integrated platform.
+AUREVIA is a web-based restaurant and event management system designed to connect customer-facing dining and event experiences with the operational activities required to manage reservations, menus, events, billing, inventory, and staff.
 
-The project is being developed following the Software Development Life Cycle (SDLC), with a focus on modular architecture, maintainability, responsive UI design, and practical intelligent features.
+The project is being developed using a modular architecture with a React frontend and a Spring Boot backend.
 
 ---
 
 ## Project Overview
 
-AUREVIA is designed to support both customers and restaurant management through six integrated functional areas:
+Restaurant and event operations involve multiple connected processes. A reservation may affect billing, menu planning, inventory requirements, event coordination, and staff allocation.
+
+AUREVIA is designed to bring these processes together within one system while providing appropriate functionality for customers and authorized staff members.
+
+### Core Functional Areas
 
 1. **Table & Event Venue Reservation**
-   - Table reservations
-   - Event venue reservations
+   - Table and venue reservation management
    - Availability checking
-   - Reservation status management
-   - Dynamic venue pricing support
+   - Reservation status tracking
+   - Venue pricing support
 
-2. **Menu Customization & Food Recommendation**
+2. **Menu Customization & Recommendation**
    - Menu browsing and management
-   - Catering menu customization
-   - Dietary and allergen preferences
-   - Food recommendations
+   - Dietary and allergen information
+   - Menu customization
+   - Customer preference support
+   - Food recommendation functionality
 
 3. **Event Coordination & Customer Feedback**
    - Event management
-   - Event timelines
+   - Event timeline tracking
    - Vendor coordination
+   - Staff requirement coordination
    - Customer feedback
    - Sentiment analysis support
 
 4. **Billing & Payment Management**
    - Invoice management
-   - Bank payment-slip upload
-   - Manual cashier verification
-   - Payment approval/rejection
+   - Bank payment slip upload
+   - Manual payment verification by cashier
+   - Payment approval and rejection
    - Payment status tracking
 
 5. **Smart Inventory & Food Waste Management**
    - Inventory management
    - Stock tracking
-   - Low-stock alerts
-   - Food waste records
+   - Low-stock monitoring
+   - Ingredient usage
+   - Food waste recording
    - Reorder recommendation support
 
 6. **Staff Management & Predictive Staff Allocation**
    - Staff management
    - Shift scheduling
    - Staff assignments
-   - Attendance and performance
+   - Attendance and performance information
    - Demand-based staff allocation support
+
+---
+
+## Connected Workflows
+
+AUREVIA is designed as a connected system rather than six isolated modules.
+
+Examples include:
+
+```text
+Reservation
+    ↓
+Invoice
+    ↓
+Payment Slip
+    ↓
+Cashier Verification
+    ↓
+Reservation Confirmation
+```
+
+```text
+Menu / Order
+    ↓
+Confirmed Order
+    ↓
+Ingredient Usage
+    ↓
+Inventory Update
+```
+
+```text
+Reservations + Events
+        ↓
+Expected Demand
+        ↓
+Staff Allocation
+```
+
+```text
+Completed Event
+      ↓
+Customer Feedback
+      ↓
+Sentiment Analysis
+```
 
 ---
 
@@ -67,46 +119,65 @@ AUREVIA is designed to support both customers and restaurant management through 
 - Axios
 - Lucide React
 
-### Planned Backend
+### Backend
 
 - Java
 - Spring Boot
 - Spring Web
 - Spring Data JPA
 - Spring Security
-- JWT Authentication
 - Maven
+- JWT-based authentication
+- Role-based authorization
 
 ### Database
 
 - MySQL
 
-### Development & Version Control
-
-- Visual Studio Code
-- IntelliJ IDEA
-- MySQL Workbench
-- Postman
-- Git
-- GitHub
-
 ---
 
-## Frontend Design System
+## Frontend Architecture
 
-The AUREVIA frontend uses a reusable component-based design system.
+The frontend follows a feature-oriented structure with reusable UI components, layouts, route configuration, services, shared data, and module-specific pages.
 
-The visual identity currently uses:
-
-- Warm ivory backgrounds
-- Deep emerald primary colors
-- Gold accent colors
-- Neutral stone text and surfaces
-- Green success states
-- Amber warning states
-- Red error/danger states
-
-The interface is designed to provide a modern and premium restaurant and event-management experience while remaining responsive and easy to use.
+```text
+src/
+├── assets/
+│   ├── images/
+│   └── icons/
+│
+├── components/
+│   ├── common/
+│   ├── dashboard/
+│   ├── forms/
+│   └── ui/
+│
+├── context/
+├── data/
+├── hooks/
+├── layouts/
+│
+├── pages/
+│   ├── public/
+│   ├── auth/
+│   ├── customer/
+│   ├── reservation/
+│   ├── menu/
+│   ├── events/
+│   ├── billing/
+│   ├── inventory/
+│   ├── staff/
+│   ├── admin/
+│   ├── dashboard/
+│   └── errors/
+│
+├── routes/
+├── services/
+├── utils/
+├── App.jsx
+├── index.css
+└── main.jsx
+```
 
 ---
 
@@ -116,88 +187,183 @@ The interface is designed to provide a modern and premium restaurant and event-m
 
 - [x] React + Vite project setup
 - [x] Tailwind CSS configuration
-- [x] AUREVIA color theme
-- [x] Responsive styling foundation
-- [x] Lucide icon integration
-- [x] Axios installed for future API integration
-- [x] React Router installed for application routing
+- [x] React Router setup
+- [x] Reusable design system
+- [x] Responsive public layout
+- [x] Shared Navbar
+- [x] Shared Footer
 
-### Reusable Form Components
+### Reusable Components
 
-- [x] Button
-- [x] Input Field
-- [x] Select Field
-- [x] Text Area Field
-- [x] File Upload
-- [x] Checkbox
+The frontend currently includes reusable components for:
 
-### Reusable UI Components
+- Buttons
+- Cards
+- Badges
+- Modals
+- Alerts
+- Tabs
+- Data tables
+- Loading states
+- Empty states
+- Input fields
+- Select fields
+- Text areas
+- Checkboxes
+- File uploads
 
-- [x] Card
-- [x] Status Badge
-- [x] Modal
-- [ ] Data Table
-- [ ] Alert
-- [ ] Tabs
-- [ ] Loading State
-- [ ] Empty State
+### Public Website
 
-### Application Interfaces
+- [x] Home
+- [x] Dining
+- [x] Menu
+- [x] Events
+- [x] About
 
-- [ ] Public website
-- [ ] Authentication interfaces
+### Authentication
+
+- [ ] Authentication layout
+- [ ] Login interface
+- [ ] Registration interface
+- [ ] JWT integration
+- [ ] Protected routes
+- [ ] Role-based route access
+
+### Customer Module
+
 - [ ] Customer dashboard
+- [ ] Profile
+- [ ] Reservations
+- [ ] Menu customization
+- [ ] Recommendations
+- [ ] Events
+- [ ] Invoices
+- [ ] Payment slip upload
+- [ ] Payment status
+- [ ] Feedback
+
+### Management Modules
+
 - [ ] Reservation management
-- [ ] Menu & recommendation management
+- [ ] Menu management
 - [ ] Event coordination
-- [ ] Billing & payment verification
-- [ ] Inventory & waste management
-- [ ] Staff management
-- [ ] Administration interfaces
-
-### Backend Integration
-
-- [ ] REST API integration
-- [ ] Authentication & authorization
-- [ ] MySQL persistence
-- [ ] File upload integration
-- [ ] Role-based access control
+- [ ] Billing and payment verification
+- [ ] Inventory and waste management
+- [ ] Staff management and allocation
+- [ ] Administration and reporting
 
 ---
 
-## Current UI Preview
+## Public Frontend Features
 
-### Form Components
+### Home
 
-Reusable form controls have been created for data entry, reservation preferences, and future payment-slip uploads.
+The Home page introduces the AUREVIA dining and event experience and provides navigation to the main public functionality.
 
-![AUREVIA Form Components](docs/screenshots/form-components.png)
+### Dining
 
-### Cards & Status Badges
+The Dining page currently provides:
 
-Reusable cards and status indicators provide consistent presentation across reservations, payments, events, inventory, and staff interfaces.
+- Dining experience information
+- Date, time, and guest selection interface
+- Dining option previews
+- Reservation process explanation
 
-![AUREVIA Cards and Status Badges](docs/screenshots/cards-status-badges.png)
+The availability interface is currently a **frontend preview**. Real availability will be provided by the backend reservation service after integration.
 
-### Modal Component
+### Menu
 
-A reusable modal component has been implemented for confirmation and management workflows.
+The Menu page currently provides:
 
-![AUREVIA Modal Component](docs/screenshots/modal-component.png)
+- Menu category filtering
+- Menu search
+- Dietary labels
+- Allergen information
+- Customer dietary preference selection
+- Recommendation interface preview
 
-### Confirmation Modal
+Menu records and prices currently shown in the frontend are **demonstration data**.
 
-Example frontend reservation-cancellation confirmation flow:
+The recommendation interface currently demonstrates the user experience only. Recommendation logic will be connected separately.
 
-![AUREVIA Confirmation Modal](docs/screenshots/modal-confirmation.png)
+### Events
 
-> The current screenshots demonstrate frontend UI components using local demonstration data. Backend operations and database persistence will be integrated in later development stages.
+The Events page currently provides:
+
+- Event type filtering
+- Wedding event information
+- Corporate event information
+- Celebration event information
+- Private event information
+- Event coordination process explanation
+
+The coordination journey demonstrates the intended flow:
+
+```text
+Event Request
+    ↓
+Venue Options
+    ↓
+Dining Customization
+    ↓
+Resource Coordination
+    ↓
+Progress Tracking
+    ↓
+Customer Feedback
+```
+
+Venue availability and actual event records will be provided by backend services after integration.
+
+### About
+
+The About page explains:
+
+- The purpose of AUREVIA
+- The six core functional areas
+- Role-based system access
+- Connections between system modules
+- Major operational workflows
+
+---
+
+## Current Development Status
+
+The **public frontend milestone is complete**.
+
+Current development focus:
+
+```text
+Public Website       COMPLETE
+        ↓
+Authentication       NEXT
+        ↓
+Customer Experience
+        ↓
+Reservation Management
+        ↓
+Menu Management & Recommendations
+        ↓
+Event Coordination & Sentiment Analysis
+        ↓
+Billing & Payment Verification
+        ↓
+Inventory & Waste Management
+        ↓
+Staff Management & Allocation
+        ↓
+Administration
+        ↓
+Backend Integration & Final Testing
+```
 
 ---
 
 ## Payment Workflow
 
-AUREVIA uses a manual bank-transfer verification process rather than a direct online payment gateway.
+AUREVIA does **not currently use an online payment gateway**.
+
+The intended payment workflow is:
 
 ```text
 Customer Reservation
@@ -215,99 +381,104 @@ Payment Status Updated
 Reservation Confirmation
 ```
 
-The frontend file-upload component is currently implemented. Server-side file storage, payment records, cashier verification, and database persistence will be implemented during backend integration.
+This allows payment verification to remain under authorized cashier control.
 
 ---
 
-## Planned Application Structure
+## Recommendation & Intelligent Features
 
-```text
-src/
-├── assets/
-│   ├── images/
-│   └── icons/
-├── components/
-│   ├── common/
-│   ├── dashboard/
-│   ├── forms/
-│   └── ui/
-├── context/
-├── data/
-├── hooks/
-├── layouts/
-├── pages/
-│   ├── public/
-│   ├── auth/
-│   ├── customer/
-│   ├── reservation/
-│   ├── menu/
-│   ├── events/
-│   ├── billing/
-│   ├── inventory/
-│   ├── staff/
-│   ├── admin/
-│   ├── dashboard/
-│   └── errors/
-├── routes/
-├── services/
-├── utils/
-├── App.jsx
-├── index.css
-└── main.jsx
-```
-
----
-
-## Development Approach
-
-AUREVIA is being developed incrementally.
-
-```text
-Requirements
-     ↓
-System Design
-     ↓
-Frontend Development
-     ↓
-Backend Development
-     ↓
-Database Integration
-     ↓
-Frontend–Backend Integration
-     ↓
-Testing
-     ↓
-Deployment
-```
-
-Reusable components are developed before complete application pages to maintain consistency and reduce duplicated code.
-
----
-
-## Intelligent Features
-
-The architecture is intended to support intelligent features including:
+AUREVIA is designed to support explainable intelligent features such as:
 
 - Food recommendations
-- Dynamic venue pricing
-- Customer feedback sentiment analysis
+- Sentiment analysis
 - Inventory reorder recommendations
 - Demand-based staff allocation
 
-Initial implementations may use transparent rule-based approaches, with the architecture kept modular for future machine-learning or external-service integration.
+During frontend development, these areas may contain clearly identified preview interfaces.
+
+The recommendation and prediction logic will be implemented separately and integrated through backend services.
 
 ---
 
-## Project Status
+## Development Principles
 
-**Current Phase:** Frontend Development
+The project follows several development principles:
 
-The reusable frontend design system is currently under development. Complete application pages and role-specific dashboards will be developed next, followed by backend and database integration.
+- Modular architecture
+- Reusable UI components
+- Separation of presentation and data
+- Responsive design
+- Role-based access
+- Clear frontend/backend separation
+- Explainable recommendation logic
+- No hard-coded authentication credentials
+- No exposed secrets in the repository
+- Git-based version control
+- Incremental development and testing
 
 ---
 
-## Repository
+## Running the Frontend
 
-This repository contains the ongoing development of the AUREVIA Restaurant & Event Management System.
+Navigate to the frontend project directory and install dependencies:
 
-Development progress is documented through incremental Git commits as features are designed, implemented, tested, and integrated.
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+---
+
+## Current Frontend Data
+
+Some public pages currently use local structured demonstration data during frontend development.
+
+For example:
+
+```text
+src/data/menuData.js
+src/data/eventData.js
+```
+
+This keeps demonstration data separate from page presentation logic.
+
+During backend integration, these local sources can be replaced by API responses through the frontend service layer.
+
+---
+
+## Screenshots
+
+Development screenshots are stored in:
+
+```text
+docs/screenshots/
+```
+
+They document major frontend milestones and reusable components during implementation.
+
+---
+
+## Security
+
+Sensitive information such as database passwords, JWT secrets, API keys, and environment-specific credentials must not be committed to the repository.
+
+Authentication and authorization will be implemented using Spring Security, JWT, and role-based access control.
+
+---
+
+## Development
+
+AUREVIA is under active development.
+
+The current implementation focuses on establishing a reusable frontend architecture and completing the public customer-facing experience before moving into authentication and role-specific system modules.
