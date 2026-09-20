@@ -42,6 +42,14 @@ import CashierInvoicesPage from "../pages/billing/CashierInvoicesPage";
 import PaymentVerificationQueuePage from "../pages/billing/PaymentVerificationQueuePage";
 import PaymentVerificationDetailsPage from "../pages/billing/PaymentVerificationDetailsPage";
 import CashierPaymentHistoryPage from "../pages/billing/CashierPaymentHistoryPage";
+import InventoryManagerLayout from "../layouts/InventoryManagerLayout";
+import InventoryDashboardPage from "../pages/inventory/InventoryDashboardPage";
+import InventoryItemsPage from "../pages/inventory/InventoryItemsPage";
+import InventoryItemDetailsPage from "../pages/inventory/InventoryItemDetailsPage";
+import StockTransactionsPage from "../pages/inventory/StockTransactionsPage";
+import LowStockPage from "../pages/inventory/LowStockPage";
+import WasteRecordsPage from "../pages/inventory/WasteRecordsPage";
+import ReorderRecommendationsPage from "../pages/inventory/ReorderRecommendationsPage";
 
 export default function AppRoutes() {
   return (
@@ -231,8 +239,47 @@ export default function AppRoutes() {
           element={<CashierPaymentHistoryPage />}
         />
       </Route>
-      
+      <Route
+        path="/inventory"
+        element={<InventoryManagerLayout />}
+      >
+        <Route
+          index
+          element={<InventoryDashboardPage />}
+        />
 
+        <Route
+          path="items"
+          element={<InventoryItemsPage />}
+        />
+
+        <Route
+          path="items/:itemId"
+          element={<InventoryItemDetailsPage />}
+        />
+
+        <Route
+          path="stock"
+          element={<StockTransactionsPage />}
+        />
+
+        <Route
+          path="low-stock"
+          element={<LowStockPage />}
+        />
+
+        <Route
+          path="waste"
+          element={<WasteRecordsPage />}
+        />
+
+        <Route
+          path="recommendations"
+          element={<ReorderRecommendationsPage />}
+        />
+      </Route>
+                  
+     
       </Routes>
   );
 }
