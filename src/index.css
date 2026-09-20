@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #f1f8f5;
+  --color-primary-100: #dceee6;
+  --color-primary-200: #bbddce;
+  --color-primary-300: #8fc5af;
+  --color-primary-400: #5ca88b;
+  --color-primary-500: #398c70;
+  --color-primary-600: #286f59;
+  --color-primary-700: #225947;
+  --color-primary-800: #1d483b;
+  --color-primary-900: #183c32;
+  --color-primary-950: #0c211b;
+
+  --color-gold-50: #fdf9ed;
+  --color-gold-100: #f8edcd;
+  --color-gold-200: #f1d99c;
+  --color-gold-300: #e8bf62;
+  --color-gold-400: #dfa63a;
+  --color-gold-500: #c88924;
+  --color-gold-600: #a9681c;
+
+  --color-cream-50: #fffdf8;
+  --color-cream-100: #faf7ef;
+  --color-cream-200: #f2ecdf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #fffdf8;
+  color: #292524;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
