@@ -7,6 +7,9 @@ import DiningPage from "../pages/public/DiningPage";
 import MenuPage from "../pages/public/MenuPage";
 import EventsPage from "../pages/public/EventsPage";
 import AboutPage from "../pages/public/AboutPage";
+import AuthLayout from "../layouts/AuthLayout";
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 
 export default function AppRoutes() {
   return (
@@ -34,6 +37,12 @@ export default function AppRoutes() {
           element={<AboutPage />}
         />
       </Route>
+
+      <Route element={<AuthLayout />}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+      </Route>
+
     </Routes>
   );
 }
