@@ -1,86 +1,138 @@
-import { useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { Eye } from "lucide-react";
 
-import Button from "./components/ui/Button";
-import Card from "./components/ui/Card";
+import DataTable from "./components/ui/DataTable";
 import Badge from "./components/ui/Badge";
-import Modal from "./components/ui/Modal";
+import Button from "./components/ui/Button";
 
 function App() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const reservations = [
+    {
+      id: "RES-001",
+      customer: "Amaya Perera",
+      type: "Table",
+      date: "24 Sep 2026",
+      guests: 4,
+      status: "Confirmed",
+    },
+    {
+      id: "RES-002",
+      customer: "Kasun Silva",
+      type: "Event Venue",
+      date: "26 Sep 2026",
+      guests: 80,
+      status: "Pending",
+    },
+    {
+      id: "RES-003",
+      customer: "Nimali Fernando",
+      type: "Table",
+      date: "28 Sep 2026",
+      guests: 2,
+      status: "Cancelled",
+    },
+  ];
+
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case "Confirmed":
+        return "success";
+
+      case "Pending":
+        return "warning";
+
+      case "Cancelled":
+        return "danger";
+
+      default:
+        return "neutral";
+    }
+  };
+
+  const columns = [
+    {
+      key: "id",
+      label: "Reservation ID",
+    },
+    {
+      key: "customer",
+      label: "Customer",
+    },
+    {
+      key: "type",
+      label: "Type",
+    },
+    {
+      key: "date",
+      label: "Date",
+    },
+    {
+      key: "guests",
+      label: "Guests",
+    },
+    {
+      key: "status",
+      label: "Status",
+
+      render: (value) => (
+        <Badge variant={getStatusVariant(value)}>
+          {value}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+
+      render: (_, row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            console.log("View reservation:", row.id)
+          }
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          View
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-cream-50 px-6 py-16">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-7xl">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold-500">
-          Aurevia Design System
+          Aurevia Management
         </p>
 
-        <h1 className="mt-3 text-4xl font-bold text-primary-900">
-          Modal Component
-        </h1>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-primary-900">
+              Reservations
+            </h1>
 
-        <Card className="mt-10">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm text-stone-500">
-                Upcoming Reservation
-              </p>
-
-              <h2 className="mt-1 text-xl font-semibold text-stone-900">
-                Evening Table Reservation
-              </h2>
-            </div>
-
-            <Badge variant="success">
-              Confirmed
-            </Badge>
+            <p className="mt-2 text-sm text-stone-500">
+              Manage table and event venue reservations.
+            </p>
           </div>
 
-          <div className="mt-5 flex items-center gap-2 text-sm text-stone-600">
-            <CalendarDays className="h-4 w-4 text-primary-700" />
-            <span>24 September 2026 · 7:00 PM</span>
-          </div>
+          <Button>
+            New Reservation
+          </Button>
+        </div>
 
-          <div className="mt-6">
-            <Button
-              variant="danger"
-              onClick={() => setIsModalOpen(true)}
-            >
-              Cancel Reservation
-            </Button>
-          </div>
-        </Card>
+        <div className="mt-10">
+          <DataTable
+            columns={columns}
+            data={reservations}
+            emptyMessage="No reservations available."
+          />
+        </div>
+
+        <p className="mt-4 text-xs text-stone-400">
+          Demo data for frontend component testing only.
+        </p>
       </div>
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Cancel Reservation?"
-        description="Please confirm before continuing."
-        footer={
-          <>
-            <Button
-              variant="outline"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Keep Reservation
-            </Button>
-
-            <Button
-              variant="danger"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Yes, Cancel
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm leading-6 text-stone-600">
-          Are you sure you want to cancel this reservation? This
-          demonstration only shows the frontend confirmation flow.
-        </p>
-      </Modal>
     </div>
   );
 }
