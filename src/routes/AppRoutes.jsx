@@ -31,6 +31,17 @@ import CoordinatorEventDetailsPage from "../pages/events/CoordinatorEventDetails
 import EventTimelinesPage from "../pages/events/EventTimelinesPage";
 import VendorManagementPage from "../pages/events/VendorManagementPage";
 import FeedbackInsightsPage from "../pages/events/FeedbackInsightsPage";
+import CustomerBillingPage from "../pages/billing/CustomerBillingPage";
+import CustomerInvoicesPage from "../pages/billing/CustomerInvoicesPage";
+import CustomerInvoiceDetailsPage from "../pages/billing/CustomerInvoiceDetailsPage";
+import PaymentSlipUploadPage from "../pages/billing/PaymentSlipUploadPage";
+import CustomerPaymentHistoryPage from "../pages/billing/CustomerPaymentHistoryPage";
+import CashierLayout from "../layouts/CashierLayout";
+import CashierDashboardPage from "../pages/billing/CashierDashboardPage";
+import CashierInvoicesPage from "../pages/billing/CashierInvoicesPage";
+import PaymentVerificationQueuePage from "../pages/billing/PaymentVerificationQueuePage";
+import PaymentVerificationDetailsPage from "../pages/billing/PaymentVerificationDetailsPage";
+import CashierPaymentHistoryPage from "../pages/billing/CashierPaymentHistoryPage";
 
 export default function AppRoutes() {
   return (
@@ -65,114 +76,163 @@ export default function AppRoutes() {
       </Route>
 
       {/* Customer Routes */}
-    <Route path="customer" element={<CustomerLayout />}>
+      <Route path="customer" element={<CustomerLayout />}>
+        <Route index element={<CustomerDashboardPage />} />
+      </Route>
+      <Route path="customer" element={<CustomerLayout />}>
+        <Route index element={<CustomerDashboardPage />} />
+        <Route path="reservations" element={<ReservationsPage />} />
+      </Route>
+      <Route path="customer" element={<CustomerLayout />}>
       <Route index element={<CustomerDashboardPage />} />
-    </Route>
-    <Route path="customer" element={<CustomerLayout />}>
-      <Route index element={<CustomerDashboardPage />} />
-      <Route path="reservations" element={<ReservationsPage />} />
-    </Route>
-    <Route path="customer" element={<CustomerLayout />}>
-    <Route index element={<CustomerDashboardPage />} />
 
+        <Route path="reservations" element={<ReservationsPage />} />
+
+        <Route
+          path="reservations/table/new"
+          element={<NewTableReservationPage />}
+        />
+
+        <Route
+          path="billing"
+          element={<CustomerBillingPage />}
+        />
+
+        <Route
+          path="billing/invoices"
+          element={<CustomerInvoicesPage />}
+        />
+
+        <Route
+          path="billing/invoices/:invoiceId"
+          element={<CustomerInvoiceDetailsPage />}
+        />
+
+        <Route
+          path="billing/payment-slip"
+          element={<PaymentSlipUploadPage />}
+        />
+        <Route
+          path="billing/history"
+          element={<CustomerPaymentHistoryPage />}
+        />
+      </Route>
+
+
+      <Route path="customer" element={<CustomerLayout />}>
+      <Route index element={<CustomerDashboardPage />} />
       <Route path="reservations" element={<ReservationsPage />} />
 
       <Route
-        path="reservations/table/new"
-        element={<NewTableReservationPage />}
+          path="reservations/table/new"
+          element={<NewTableReservationPage />}
+        />
+
+      <Route
+        path="reservations/venue/new"
+        element={<NewVenueBookingPage />}
+      />
+
+      <Route
+        path="reservations/history"
+        element={<ReservationHistoryPage />}
+      />
+
+      <Route path="menu" element={<CustomerMenuPage />} />
+      <Route
+        path="menu/browse"
+        element={<CustomerBrowseMenuPage />}
+      />
+
+      <Route
+        path="menu/customize"
+        element={<CustomizeCateringMenuPage />}
+      />
+
+      <Route
+        path="menu/recommendations"
+        element={<FoodRecommendationsPage />}
+      />
+
+      <Route
+        path="menu/saved"
+        element={<SavedPackagesPage />}
+      />
+
+      <Route path="events" element={<CustomerEventsPage />} />
+
+      <Route
+        path="events/:eventId"
+        element={<EventDetailsPage />}
+      />
+
+      <Route
+        path="events/:eventId/feedback"
+        element={<EventFeedbackPage />}
+      />
+
+      </Route>
+
+        <Route
+      path="/event-coordinator"
+      element={<EventCoordinatorLayout />}
+    >
+      <Route
+        index
+        element={<EventCoordinatorDashboardPage />}
+      />
+
+      <Route
+        path="events"
+        element={<ManageEventsPage />}
+      />
+
+      <Route
+        path="events/:eventId"
+        element={<CoordinatorEventDetailsPage />}
+      />
+
+      <Route
+        path="timelines"
+        element={<EventTimelinesPage />}
+      />
+
+      <Route
+        path="vendors"
+        element={<VendorManagementPage />}
+      />
+
+      <Route
+        path="feedback"
+        element={<FeedbackInsightsPage />}
       />
     </Route>
-
-    <Route path="customer" element={<CustomerLayout />}>
-  <Route index element={<CustomerDashboardPage />} />
-  <Route path="reservations" element={<ReservationsPage />} />
-
-  <Route
-      path="reservations/table/new"
-      element={<NewTableReservationPage />}
-    />
-
-    <Route
-      path="reservations/venue/new"
-      element={<NewVenueBookingPage />}
-    />
-
-    <Route
-      path="reservations/history"
-      element={<ReservationHistoryPage />}
-    />
-
-    <Route path="menu" element={<CustomerMenuPage />} />
-    <Route
-      path="menu/browse"
-      element={<CustomerBrowseMenuPage />}
-    />
-
-    <Route
-      path="menu/customize"
-      element={<CustomizeCateringMenuPage />}
-    />
-
-    <Route
-      path="menu/recommendations"
-      element={<FoodRecommendationsPage />}
-    />
-
-    <Route
-      path="menu/saved"
-      element={<SavedPackagesPage />}
-    />
-
-    <Route path="events" element={<CustomerEventsPage />} />
-
-    <Route
-      path="events/:eventId"
-      element={<EventDetailsPage />}
-    />
-
-    <Route
-      path="events/:eventId/feedback"
-      element={<EventFeedbackPage />}
-    />
-
-    </Route>
-
-    <Route
-  path="/event-coordinator"
-  element={<EventCoordinatorLayout />}
->
-  <Route
-    index
-    element={<EventCoordinatorDashboardPage />}
-  />
-
-  <Route
-    path="events"
-    element={<ManageEventsPage />}
-  />
-
-  <Route
-    path="events/:eventId"
-    element={<CoordinatorEventDetailsPage />}
-  />
-
-  <Route
-  path="timelines"
-  element={<EventTimelinesPage />}
-/>
-
-<Route
-  path="vendors"
-  element={<VendorManagementPage />}
-/>
-
-<Route
-  path="feedback"
-  element={<FeedbackInsightsPage />}
-/>
-</Route>
     
+    <Route path="/cashier" element={<CashierLayout />}>
+        <Route index element={<CashierDashboardPage />} />
 
-    </Routes>
+        <Route
+          path="invoices"
+          element={<CashierInvoicesPage />}
+        />
+
+        <Route
+          path="payments"
+          element={<PaymentVerificationQueuePage />}
+        />
+
+        <Route
+          path="payments/:paymentId"
+          element={<PaymentVerificationDetailsPage />}
+        />
+
+        <Route
+          path="history"
+          element={<CashierPaymentHistoryPage />}
+        />
+      </Route>
+      
+
+      </Routes>
   );
 }
