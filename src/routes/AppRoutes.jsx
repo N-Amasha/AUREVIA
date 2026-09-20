@@ -59,6 +59,12 @@ import StaffAssignmentsPage from "../pages/staff/StaffAssignmentsPage";
 import AttendanceManagementPage from "../pages/staff/AttendanceManagementPage";
 import LeaveRequestsPage from "../pages/staff/LeaveRequestsPage";
 import StaffAllocationPage from "../pages/staff/StaffAllocationPage";
+import AdminLayout from "../layouts/AdminLayout";
+import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
+import UserManagementPage from "../pages/admin/UserManagementPage";
+import RolesAccessPage from "../pages/admin/RolesAccessPage";
+import AdminReportsPage from "../pages/admin/AdminReportsPage";
+import AdminSettingsPage from "../pages/admin/AdminSettingsPage";
 
 export default function AppRoutes() {
   return (
@@ -331,7 +337,14 @@ export default function AppRoutes() {
           element={<StaffAllocationPage />}
         />
       </Route>
-                  
+
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboardPage />} />
+        <Route path="users" element={<UserManagementPage />} />
+        <Route path="roles" element={<RolesAccessPage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+      </Route>                
      
       </Routes>
   );
