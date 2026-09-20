@@ -13,11 +13,12 @@ import Alert from "../../components/ui/Alert";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+});
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -43,8 +44,12 @@ export default function RegisterPage() {
   function validateForm() {
     const newErrors = {};
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required.";
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required.";
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required.";
     }
 
     if (!formData.email.trim()) {
@@ -98,37 +103,75 @@ export default function RegisterPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
-        {/* Full Name */}
-        <div>
-          <label
-            htmlFor="fullName"
-            className="mb-2 block text-sm font-medium text-stone-700"
-          >
-            Full Name
-          </label>
+        {/* Name */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="firstName"
+              className="mb-2 block text-sm font-medium text-stone-700"
+            >
+              First Name
+            </label>
 
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
 
-            <input
-              id="fullName"
-              name="fullName"
-              type="text"
-              value={formData.fullName}
-              onChange={handleChange}
-              placeholder="Enter your full name"
-              autoComplete="name"
-              className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                errors.fullName
-                  ? "border-red-400 focus:border-red-500"
-                  : "border-stone-300 focus:border-primary-600"
-              }`}
-            />
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="First name"
+                autoComplete="given-name"
+                className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
+                  errors.firstName
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-stone-300 focus:border-primary-600"
+                }`}
+              />
+            </div>
+
+            {errors.firstName && (
+              <p className="mt-2 text-xs text-red-600">
+                {errors.firstName}
+              </p>
+            )}
           </div>
 
-          {errors.fullName && (
-            <p className="mt-2 text-xs text-red-600">{errors.fullName}</p>
-          )}
+          <div>
+            <label
+              htmlFor="lastName"
+              className="mb-2 block text-sm font-medium text-stone-700"
+            >
+              Last Name
+            </label>
+
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Last name"
+                autoComplete="family-name"
+                className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
+                  errors.lastName
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-stone-300 focus:border-primary-600"
+                }`}
+              />
+            </div>
+
+            {errors.lastName && (
+              <p className="mt-2 text-xs text-red-600">
+                {errors.lastName}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Email */}
