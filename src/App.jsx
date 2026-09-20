@@ -1,136 +1,74 @@
-import { Eye } from "lucide-react";
+import { useState } from "react";
 
-import DataTable from "./components/ui/DataTable";
-import Badge from "./components/ui/Badge";
-import Button from "./components/ui/Button";
+import Tabs from "./components/ui/Tabs";
+import Card from "./components/ui/Card";
 
 function App() {
-  const reservations = [
+  const [activeTab, setActiveTab] = useState("all");
+
+  const tabs = [
     {
-      id: "RES-001",
-      customer: "Amaya Perera",
-      type: "Table",
-      date: "24 Sep 2026",
-      guests: 4,
-      status: "Confirmed",
+      label: "All Reservations",
+      value: "all",
+      count: 12,
     },
     {
-      id: "RES-002",
-      customer: "Kasun Silva",
-      type: "Event Venue",
-      date: "26 Sep 2026",
-      guests: 80,
-      status: "Pending",
+      label: "Pending",
+      value: "pending",
+      count: 4,
     },
     {
-      id: "RES-003",
-      customer: "Nimali Fernando",
-      type: "Table",
-      date: "28 Sep 2026",
-      guests: 2,
-      status: "Cancelled",
+      label: "Confirmed",
+      value: "confirmed",
+      count: 6,
+    },
+    {
+      label: "Cancelled",
+      value: "cancelled",
+      count: 2,
     },
   ];
 
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case "Confirmed":
-        return "success";
-
-      case "Pending":
-        return "warning";
-
-      case "Cancelled":
-        return "danger";
-
-      default:
-        return "neutral";
-    }
+  const content = {
+    all: "Showing all reservations.",
+    pending: "Showing reservations waiting for confirmation.",
+    confirmed: "Showing confirmed reservations.",
+    cancelled: "Showing cancelled reservations.",
   };
-
-  const columns = [
-    {
-      key: "id",
-      label: "Reservation ID",
-    },
-    {
-      key: "customer",
-      label: "Customer",
-    },
-    {
-      key: "type",
-      label: "Type",
-    },
-    {
-      key: "date",
-      label: "Date",
-    },
-    {
-      key: "guests",
-      label: "Guests",
-    },
-    {
-      key: "status",
-      label: "Status",
-
-      render: (value) => (
-        <Badge variant={getStatusVariant(value)}>
-          {value}
-        </Badge>
-      ),
-    },
-    {
-      key: "actions",
-      label: "Actions",
-
-      render: (_, row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            console.log("View reservation:", row.id)
-          }
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          View
-        </Button>
-      ),
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-cream-50 px-6 py-16">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-4xl">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold-500">
           Aurevia Management
         </p>
 
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold text-primary-900">
-              Reservations
-            </h1>
+        <h1 className="mt-3 text-4xl font-bold text-primary-900">
+          Reservation Management
+        </h1>
 
-            <p className="mt-2 text-sm text-stone-500">
-              Manage table and event venue reservations.
-            </p>
+        <p className="mt-2 text-stone-500">
+          Filter reservations according to their current status.
+        </p>
+
+        <Card className="mt-10" padding="none">
+          <div className="px-6 pt-4">
+            <Tabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+            />
           </div>
 
-          <Button>
-            New Reservation
-          </Button>
-        </div>
-
-        <div className="mt-10">
-          <DataTable
-            columns={columns}
-            data={reservations}
-            emptyMessage="No reservations available."
-          />
-        </div>
+          <div className="p-6">
+            <p className="text-sm text-stone-600">
+              {content[activeTab]}
+            </p>
+          </div>
+        </Card>
 
         <p className="mt-4 text-xs text-stone-400">
-          Demo data for frontend component testing only.
+          Active tab: {activeTab}
         </p>
       </div>
     </div>
