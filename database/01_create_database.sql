@@ -10,3 +10,4 @@ CREATE DATABASE IF NOT EXISTS aurevia_db
     COLLATE utf8mb4_unicode_ci;
 
 USE aurevia_db;
+
