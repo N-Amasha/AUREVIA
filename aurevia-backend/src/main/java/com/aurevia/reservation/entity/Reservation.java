@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,7 +23,7 @@ public class Reservation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "reservation_id", nullable = false)
+    @Column(name = "reservation_id")
     private Integer reservationId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -55,18 +56,22 @@ public class Reservation {
     @Column(name = "number_of_guests", nullable = false)
     private Integer numberOfGuests;
 
-    @Column(name = "reservation_status", nullable = false, length = 30)
+    @Column(
+            name = "reservation_status",
+            nullable = false,
+            length = 30
+    )
     private String reservationStatus;
 
+    @CreationTimestamp
     @Column(
             name = "created_at",
             nullable = false,
-            insertable = false,
             updatable = false
     )
     private LocalDateTime createdAt;
 
-    protected Reservation() {
+    public Reservation() {
     }
 
     public Reservation(
