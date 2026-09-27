@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -35,10 +37,10 @@ public class CustomerOrder {
     )
     private Customer customer;
 
+        @CreationTimestamp
     @Column(
             name = "order_date",
             nullable = false,
-            insertable = false,
             updatable = false
     )
     private LocalDateTime orderDate;

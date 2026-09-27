@@ -1,5 +1,6 @@
 package com.aurevia.menu.entity;
 
+import org.hibernate.annotations.CreationTimestamp;
 import com.aurevia.user.entity.Customer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,10 +53,10 @@ public class FavoritePackage {
     )
     private CateringPackage cateringPackage;
 
+    @CreationTimestamp
     @Column(
             name = "saved_date",
             nullable = false,
-            insertable = false,
             updatable = false
     )
     private LocalDateTime savedDate;
