@@ -12,6 +12,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.CreationTimestamp;
+
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -64,10 +67,10 @@ public class EventBooking {
     @Column(name = "booking_status", nullable = false, length = 30)
     private String bookingStatus;
 
+    @CreationTimestamp
     @Column(
             name = "created_at",
             nullable = false,
-            insertable = false,
             updatable = false
     )
     private LocalDateTime createdAt;
