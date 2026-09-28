@@ -1,6 +1,7 @@
 package com.aurevia.billing.entity;
 
 import com.aurevia.menu.entity.CustomerOrder;
+import org.hibernate.annotations.CreationTimestamp;
 import com.aurevia.reservation.entity.EventBooking;
 import com.aurevia.reservation.entity.Reservation;
 import com.aurevia.user.entity.Customer;
@@ -50,10 +51,10 @@ public class Invoice {
     @JoinColumn(name = "order_id", unique = true)
     private CustomerOrder customerOrder;
 
+    @CreationTimestamp
     @Column(
             name = "invoice_date",
             nullable = false,
-            insertable = false,
             updatable = false
     )
     private LocalDateTime invoiceDate;
