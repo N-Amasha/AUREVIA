@@ -1,5 +1,6 @@
 package com.aurevia.event.entity;
 
+import org.hibernate.annotations.CreationTimestamp;
 import com.aurevia.menu.entity.CustomerOrder;
 import com.aurevia.user.entity.Customer;
 import jakarta.persistence.Column;
@@ -62,10 +63,10 @@ public class Review {
     )
     private CustomerOrder customerOrder;
 
+    @CreationTimestamp
     @Column(
             name = "review_date",
             nullable = false,
-            insertable = false,
             updatable = false
     )
     private LocalDateTime reviewDate;

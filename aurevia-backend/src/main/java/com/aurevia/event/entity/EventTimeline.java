@@ -1,6 +1,7 @@
 package com.aurevia.event.entity;
 
 import jakarta.persistence.Column;
+import org.hibernate.annotations.UpdateTimestamp;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
@@ -49,13 +50,12 @@ public class EventTimeline {
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
-    @Column(
-            name = "updated_date",
-            nullable = false,
-            insertable = false,
-            updatable = false
-    )
-    private LocalDateTime updatedDate;
+    @UpdateTimestamp
+@Column(
+        name = "updated_date",
+        nullable = false
+)
+private LocalDateTime updatedDate;
 
     protected EventTimeline() {
     }
