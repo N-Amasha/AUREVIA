@@ -1,10 +1,17 @@
-import { NavLink, Outlet } from "react-router-dom";
+import {
+  NavLink,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
 import {
   LayoutDashboard,
   ReceiptText,
   ShieldCheck,
   History,
+  LogOut,
 } from "lucide-react";
+
+import { clearAuth } from "../api/authStorage";
 
 const navigation = [
   {
@@ -31,6 +38,16 @@ const navigation = [
 ];
 
 export default function CashierLayout() {
+  const navigate = useNavigate();
+
+  function handleSignOut() {
+    clearAuth();
+
+    navigate("/login", {
+      replace: true,
+    });
+  }
+
   return (
     <div className="min-h-screen bg-cream-50">
       {/* Header */}
@@ -46,8 +63,19 @@ export default function CashierLayout() {
             </p>
           </div>
 
-          <div className="rounded-full border border-white/10 px-4 py-2 text-xs text-stone-300">
-            Billing & Payment Management
+          <div className="flex items-center gap-3">
+            <div className="hidden rounded-full border border-white/10 px-4 py-2 text-xs text-stone-300 sm:block">
+              Billing & Payment Management
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

@@ -1,4 +1,8 @@
-import { NavLink, Outlet } from "react-router-dom";
+import {
+  NavLink,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
 import {
   CalendarCheck,
   CalendarDays,
@@ -13,8 +17,20 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { clearAuth } from "../api/authStorage";
+
 export default function CustomerLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] =
+    useState(false);
+
+  function handleSignOut() {
+    clearAuth();
+
+    navigate("/login", {
+      replace: true,
+    });
+  }
 
   const navigation = [
     {
@@ -76,6 +92,7 @@ export default function CustomerLayout() {
               <p className="font-bold tracking-[0.14em] text-primary-950">
                 AUREVIA
               </p>
+
               <p className="text-[10px] uppercase tracking-[0.18em] text-gold-600">
                 Customer Portal
               </p>
@@ -104,9 +121,8 @@ export default function CustomerLayout() {
         <div className="border-t border-stone-200 p-5">
           <button
             type="button"
-            disabled
-            className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-stone-400"
-            title="Available after authentication integration"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-stone-600 transition hover:bg-red-50 hover:text-red-700"
           >
             <LogOut className="h-5 w-5" />
             Sign Out
@@ -152,6 +168,7 @@ export default function CustomerLayout() {
                 <p className="font-bold tracking-[0.12em] text-primary-950">
                   AUREVIA
                 </p>
+
                 <p className="text-[10px] uppercase tracking-[0.16em] text-gold-600">
                   Customer Portal
                 </p>
@@ -159,7 +176,9 @@ export default function CustomerLayout() {
 
               <button
                 type="button"
-                onClick={() => setSidebarOpen(false)}
+                onClick={() =>
+                  setSidebarOpen(false)
+                }
                 className="rounded-lg p-2 text-stone-600 hover:bg-stone-100"
                 aria-label="Close navigation"
               >
@@ -176,7 +195,9 @@ export default function CustomerLayout() {
                     key={item.path}
                     to={item.path}
                     end={item.end}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={() =>
+                      setSidebarOpen(false)
+                    }
                     className={navStyles}
                   >
                     <Icon className="h-5 w-5" />
@@ -185,6 +206,17 @@ export default function CustomerLayout() {
                 );
               })}
             </nav>
+
+            <div className="border-t border-stone-200 p-5">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-stone-600 transition hover:bg-red-50 hover:text-red-700"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </button>
+            </div>
           </aside>
         </div>
       )}

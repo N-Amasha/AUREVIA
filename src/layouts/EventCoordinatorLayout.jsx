@@ -7,6 +7,8 @@ import {
   Store,
 } from "lucide-react";
 
+import SignOutButton from "../components/auth/SignOutButton";
+
 const navigation = [
   {
     label: "Dashboard",
@@ -39,15 +41,19 @@ const navigation = [
 export default function EventCoordinatorLayout() {
   return (
     <div className="min-h-screen bg-cream-50">
-      <div className="border-b border-stone-200 bg-primary-950 px-5 py-5 text-white">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xl font-bold tracking-wide">
-            AUREVIA
-          </p>
+            <div className="border-b border-stone-200 bg-primary-950 px-5 py-5 text-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div>
+            <p className="text-xl font-bold tracking-wide">
+              AUREVIA
+            </p>
 
-          <p className="mt-1 text-xs text-stone-300">
-            Event Coordinator Workspace
-          </p>
+            <p className="mt-1 text-xs text-stone-300">
+              Event Coordinator Workspace
+            </p>
+          </div>
+
+          <SignOutButton />
         </div>
       </div>
 

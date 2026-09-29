@@ -8,6 +8,8 @@ import {
   Lightbulb,
 } from "lucide-react";
 
+import SignOutButton from "../components/auth/SignOutButton";
+
 const navigation = [
   {
     name: "Dashboard",
@@ -58,8 +60,12 @@ export default function InventoryManagerLayout() {
             </p>
           </div>
 
-          <div className="rounded-full border border-white/10 px-4 py-2 text-xs text-stone-300">
-            Inventory & Food Waste Management
+          <div className="flex items-center gap-3">
+            <div className="hidden rounded-full border border-white/10 px-4 py-2 text-xs text-stone-300 sm:block">
+              Inventory & Food Waste Management
+            </div>
+
+            <SignOutButton />
           </div>
         </div>
       </header>

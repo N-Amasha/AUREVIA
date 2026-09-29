@@ -10,6 +10,7 @@ import InventoryManagerLayout from "../layouts/InventoryManagerLayout";
 import HRManagerLayout from "../layouts/HRManagerLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 // Public Pages
 import HomePage from "../pages/public/HomePage";
@@ -132,7 +133,14 @@ export default function AppRoutes() {
       </Route>
 
       {/* ================= CUSTOMER ================= */}
-      <Route path="customer" element={<CustomerLayout />}>
+        <Route
+          path="customer"
+          element={
+            <ProtectedRoute allowedRoles={["CUSTOMER"]}>
+              <CustomerLayout />
+            </ProtectedRoute>
+          }
+        >
         <Route index element={<CustomerDashboardPage />} />
 
         {/* Reservations */}
@@ -224,7 +232,13 @@ export default function AppRoutes() {
       {/* ================= RESTAURANT MANAGER ================= */}
       <Route
         path="restaurant-manager"
-        element={<RestaurantManagerLayout />}
+        element={
+          <ProtectedRoute
+            allowedRoles={["RESTAURANT_MANAGER"]}
+          >
+            <RestaurantManagerLayout />
+          </ProtectedRoute>
+        }
       >
         <Route
           index
@@ -253,7 +267,14 @@ export default function AppRoutes() {
       </Route>
 
       {/* ================= CHEF ================= */}
-      <Route path="chef" element={<ChefLayout />}>
+      <Route
+        path="chef"
+        element={
+          <ProtectedRoute allowedRoles={["CHEF"]}>
+            <ChefLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<ChefDashboardPage />} />
 
         <Route
@@ -275,7 +296,13 @@ export default function AppRoutes() {
       {/* ================= EVENT COORDINATOR ================= */}
       <Route
         path="event-coordinator"
-        element={<EventCoordinatorLayout />}
+        element={
+          <ProtectedRoute
+            allowedRoles={["EVENT_COORDINATOR"]}
+          >
+            <EventCoordinatorLayout />
+          </ProtectedRoute>
+        }
       >
         <Route index element={<EventCoordinatorDashboardPage />} />
         <Route path="events" element={<ManageEventsPage />} />
@@ -289,7 +316,14 @@ export default function AppRoutes() {
       </Route>
 
       {/* ================= CASHIER ================= */}
-      <Route path="cashier" element={<CashierLayout />}>
+      <Route
+        path="cashier"
+        element={
+          <ProtectedRoute allowedRoles={["CASHIER"]}>
+            <CashierLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<CashierDashboardPage />} />
         <Route path="invoices" element={<CashierInvoicesPage />} />
         <Route
@@ -309,7 +343,13 @@ export default function AppRoutes() {
       {/* ================= INVENTORY ================= */}
       <Route
         path="inventory"
-        element={<InventoryManagerLayout />}
+        element={
+          <ProtectedRoute
+            allowedRoles={["INVENTORY_MANAGER"]}
+          >
+            <InventoryManagerLayout />
+          </ProtectedRoute>
+        }
       >
         <Route index element={<InventoryDashboardPage />} />
         <Route path="items" element={<InventoryItemsPage />} />
@@ -330,7 +370,14 @@ export default function AppRoutes() {
       </Route>
 
       {/* ================= HR ================= */}
-      <Route path="hr" element={<HRManagerLayout />}>
+      <Route
+        path="hr"
+        element={
+          <ProtectedRoute allowedRoles={["HR_MANAGER"]}>
+            <HRManagerLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<HRDashboardPage />} />
         <Route path="staff" element={<StaffManagementPage />} />
         <Route
@@ -354,7 +401,16 @@ export default function AppRoutes() {
       </Route>
 
       {/* ================= ADMIN ================= */}
-      <Route path="admin" element={<AdminLayout />}>
+      <Route
+        path="admin"
+        element={
+          <ProtectedRoute
+            allowedRoles={["ADMINISTRATOR"]}
+          >
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<AdminDashboardPage />} />
         <Route path="users" element={<UserManagementPage />} />
         <Route path="roles" element={<RolesAccessPage />} />
