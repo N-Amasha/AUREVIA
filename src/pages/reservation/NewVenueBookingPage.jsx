@@ -1,27 +1,70 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
+  Building2,
   CalendarDays,
-  Clock3,
   Info,
   MapPin,
   Search,
-  Users,
 } from "lucide-react";
 
 import Button from "../../components/ui/Button";
+import { getAuth } from "../../api/authStorage";
+import {
+  createEventBooking,
+  getAvailableVenues,
+} from "../../api/reservationApi";
+
+const venueTypes = [
+  "BALLROOM",
+  "OUTDOOR",
+  "CONFERENCE",
+  "TERRACE",
+  "BANQUET",
+];
+
+function getToday() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
+function getErrorMessage(error) {
+  return (
+    error.response?.data?.message ??
+    "Unable to complete the venue-booking request."
+  );
+}
 
 export default function NewVenueBookingPage() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     bookingDate: "",
-    startTime: "",
     guestCount: "",
     venueType: "",
   });
 
   const [errors, setErrors] = useState({});
+  const [venues, setVenues] = useState([]);
+  const [selectedVenueId, setSelectedVenueId] =
+    useState("");
   const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [booking, setBooking] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -36,45 +79,112 @@ export default function NewVenueBookingPage() {
       [name]: "",
     }));
 
+    setVenues([]);
+    setSelectedVenueId("");
     setSearched(false);
+    setErrorMessage("");
   }
 
-  function validateForm() {
-    const newErrors = {};
+  function validateSearch() {
+    const validationErrors = {};
 
     if (!formData.bookingDate) {
-      newErrors.bookingDate = "Event date is required.";
-    }
-
-    if (!formData.startTime) {
-      newErrors.startTime = "Start time is required.";
+      validationErrors.bookingDate =
+        "Event date is required.";
+    } else if (formData.bookingDate < getToday()) {
+      validationErrors.bookingDate =
+        "Event date cannot be in the past.";
     }
 
     if (!formData.guestCount) {
-      newErrors.guestCount = "Guest count is required.";
+      validationErrors.guestCount =
+        "Guest count is required.";
     } else if (Number(formData.guestCount) < 1) {
-      newErrors.guestCount = "Guest count must be at least 1.";
+      validationErrors.guestCount =
+        "Guest count must be at least 1.";
     }
 
     if (!formData.venueType) {
-      newErrors.venueType = "Please select a venue type.";
+      validationErrors.venueType =
+        "Please select a venue type.";
     }
 
-    return newErrors;
+    return validationErrors;
   }
 
-  function handleSubmit(event) {
+  async function handleSearch(event) {
     event.preventDefault();
 
-    const validationErrors = validateForm();
+    const validationErrors = validateSearch();
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    setErrors({});
-    setSearched(true);
+    try {
+      setSearching(true);
+      setErrorMessage("");
+      setSelectedVenueId("");
+
+      const availableVenues = await getAvailableVenues({
+        minimumCapacity: Number(formData.guestCount),
+      });
+
+      const matchingVenues = availableVenues.filter(
+        (venue) =>
+          venue.venueType.toUpperCase() ===
+          formData.venueType,
+      );
+
+      setVenues(matchingVenues);
+      setSearched(true);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleBooking() {
+    if (!selectedVenueId) {
+      setErrorMessage(
+        "Please select a venue before confirming the booking.",
+      );
+      return;
+    }
+
+    const customerId = getAuth()?.userId;
+
+    if (!customerId) {
+      setErrorMessage(
+        "Your customer account could not be identified.",
+      );
+      return;
+    }
+
+    try {
+      setBooking(true);
+      setErrorMessage("");
+
+      const createdBooking = await createEventBooking({
+        customerId,
+        venueId: Number(selectedVenueId),
+        bookingDate: formData.bookingDate,
+        guestCount: Number(formData.guestCount),
+      });
+
+      navigate(
+        `/customer/reservations/venue/${createdBooking.eventBookingId}`,
+        {
+          replace: true,
+        },
+      );
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setBooking(false);
+    }
   }
 
   return (
@@ -87,7 +197,6 @@ export default function NewVenueBookingPage() {
         Back to Reservations
       </Link>
 
-      {/* Header */}
       <section className="mt-7">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold-500">
           <MapPin className="h-5 w-5 text-primary-950" />
@@ -102,170 +211,89 @@ export default function NewVenueBookingPage() {
         </h1>
 
         <p className="mt-3 max-w-2xl leading-7 text-stone-600">
-          Enter your event requirements to search for suitable Aurevia
-          venue options.
+          Search available venues by event date, guest capacity and venue
+          type.
         </p>
       </section>
 
       <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Search Form */}
         <section className="rounded-2xl border border-stone-200 bg-white p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-primary-950">
             Event requirements
           </h2>
 
-          <p className="mt-2 text-sm leading-6 text-stone-600">
-            Provide the basic details needed to identify suitable venues.
-          </p>
-
           <form
-            onSubmit={handleSubmit}
+            onSubmit={handleSearch}
             className="mt-7 space-y-6"
             noValidate
           >
-            {/* Event Date */}
-            <div>
-              <label
-                htmlFor="bookingDate"
-                className="mb-2 block text-sm font-medium text-stone-700"
-              >
-                Event Date
-              </label>
+            <FormField
+              label="Event Date"
+              error={errors.bookingDate}
+            >
+              <input
+                id="bookingDate"
+                name="bookingDate"
+                type="date"
+                min={getToday()}
+                value={formData.bookingDate}
+                onChange={handleChange}
+                className={inputStyles(errors.bookingDate)}
+              />
+            </FormField>
 
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <FormField
+              label="Number of Guests"
+              error={errors.guestCount}
+            >
+              <input
+                id="guestCount"
+                name="guestCount"
+                type="number"
+                min="1"
+                value={formData.guestCount}
+                onChange={handleChange}
+                placeholder="Enter guest count"
+                className={inputStyles(errors.guestCount)}
+              />
+            </FormField>
 
-                <input
-                  id="bookingDate"
-                  name="bookingDate"
-                  type="date"
-                  value={formData.bookingDate}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                    errors.bookingDate
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-stone-300 focus:border-primary-600"
-                  }`}
-                />
-              </div>
-
-              {errors.bookingDate && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.bookingDate}
-                </p>
-              )}
-            </div>
-
-            {/* Start Time */}
-            <div>
-              <label
-                htmlFor="startTime"
-                className="mb-2 block text-sm font-medium text-stone-700"
-              >
-                Preferred Start Time
-              </label>
-
-              <div className="relative">
-                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-
-                <input
-                  id="startTime"
-                  name="startTime"
-                  type="time"
-                  value={formData.startTime}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                    errors.startTime
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-stone-300 focus:border-primary-600"
-                  }`}
-                />
-              </div>
-
-              {errors.startTime && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.startTime}
-                </p>
-              )}
-            </div>
-
-            {/* Guest Count */}
-            <div>
-              <label
-                htmlFor="guestCount"
-                className="mb-2 block text-sm font-medium text-stone-700"
-              >
-                Number of Guests
-              </label>
-
-              <div className="relative">
-                <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-
-                <input
-                  id="guestCount"
-                  name="guestCount"
-                  type="number"
-                  min="1"
-                  value={formData.guestCount}
-                  onChange={handleChange}
-                  placeholder="Enter guest count"
-                  className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                    errors.guestCount
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-stone-300 focus:border-primary-600"
-                  }`}
-                />
-              </div>
-
-              {errors.guestCount && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.guestCount}
-                </p>
-              )}
-            </div>
-
-            {/* Venue Type */}
-            <div>
-              <label
-                htmlFor="venueType"
-                className="mb-2 block text-sm font-medium text-stone-700"
-              >
-                Venue Type
-              </label>
-
+            <FormField
+              label="Venue Type"
+              error={errors.venueType}
+            >
               <select
                 id="venueType"
                 name="venueType"
                 value={formData.venueType}
                 onChange={handleChange}
-                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition ${
-                  errors.venueType
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-stone-300 focus:border-primary-600"
-                }`}
+                className={inputStyles(errors.venueType)}
               >
                 <option value="">Select venue type</option>
-                <option value="wedding">Wedding</option>
-                <option value="corporate">Corporate</option>
-                <option value="celebration">Celebration</option>
-                <option value="private">Private Event</option>
+
+                {venueTypes.map((venueType) => (
+                  <option
+                    key={venueType}
+                    value={venueType}
+                  >
+                    {venueType.replaceAll("_", " ")}
+                  </option>
+                ))}
               </select>
+            </FormField>
 
-              {errors.venueType && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.venueType}
-                </p>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={searching}
+            >
               <Search className="h-4 w-4" />
-              Check Venue Options
+              {searching
+                ? "Searching..."
+                : "Check Venue Options"}
             </Button>
           </form>
         </section>
 
-        {/* Information Panel */}
         <aside className="rounded-2xl bg-primary-950 p-6 text-white sm:p-7">
           <Info className="h-6 w-6 text-gold-400" />
 
@@ -274,81 +302,132 @@ export default function NewVenueBookingPage() {
           </h2>
 
           <div className="mt-6 space-y-5 text-sm leading-6 text-stone-300">
-            <div>
-              <span className="font-semibold text-white">01.</span>{" "}
-              Enter your event requirements.
-            </div>
-
-            <div>
-              <span className="font-semibold text-white">02.</span>{" "}
-              Aurevia checks suitable venue options and capacity.
-            </div>
-
-            <div>
-              <span className="font-semibold text-white">03.</span>{" "}
-              Review the selected venue and applicable pricing.
-            </div>
-
-            <div>
-              <span className="font-semibold text-white">04.</span>{" "}
-              Continue with the event booking process.
-            </div>
+            <p>1. Enter the event requirements.</p>
+            <p>2. Select a matching available venue.</p>
+            <p>3. Aurevia checks date conflicts and pricing.</p>
+            <p>4. The booking is created with PENDING status.</p>
           </div>
         </aside>
       </div>
 
-      {/* Search Preview */}
-      {searched && (
-        <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-6">
-          <h2 className="font-semibold text-primary-950">
-            Venue search ready for backend integration
+      {errorMessage && (
+        <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
+
+      {searched && venues.length === 0 && (
+        <section className="mt-8 rounded-2xl border border-dashed border-stone-300 bg-white p-8 text-center">
+          <Building2 className="mx-auto h-7 w-7 text-stone-400" />
+
+          <h2 className="mt-4 font-semibold text-primary-950">
+            No matching venues found
           </h2>
 
-          <p className="mt-2 text-sm leading-6 text-primary-800">
-            Your event requirements are valid. Matching venue records,
-            capacity, availability and pricing will be retrieved from the
-            backend when the venue booking service is connected.
+          <p className="mt-2 text-sm text-stone-600">
+            Try another venue type or reduce the guest count.
           </p>
+        </section>
+      )}
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">
-                Event Date
-              </span>
-              <span className="mt-1 block font-medium text-primary-950">
-                {formData.bookingDate}
-              </span>
-            </div>
+      {venues.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-xl font-semibold text-primary-950">
+            Available venue options
+          </h2>
 
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">
-                Start Time
-              </span>
-              <span className="mt-1 block font-medium text-primary-950">
-                {formData.startTime}
-              </span>
-            </div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            {venues.map((venue) => {
+              const selected =
+                Number(selectedVenueId) === venue.venueId;
 
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">
-                Guests
-              </span>
-              <span className="mt-1 block font-medium text-primary-950">
-                {formData.guestCount}
-              </span>
-            </div>
+              return (
+                <button
+                  key={venue.venueId}
+                  type="button"
+                  onClick={() =>
+                    setSelectedVenueId(
+                      String(venue.venueId),
+                    )
+                  }
+                  className={`rounded-2xl border p-6 text-left transition ${
+                    selected
+                      ? "border-primary-700 bg-primary-50"
+                      : "border-stone-200 bg-white hover:border-primary-300"
+                  }`}
+                >
+                  <p className="text-lg font-semibold text-primary-950">
+                    {venue.venueName}
+                  </p>
 
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">
-                Venue Type
-              </span>
-              <span className="mt-1 block font-medium capitalize text-primary-950">
-                {formData.venueType}
-              </span>
-            </div>
+                  <p className="mt-2 text-sm text-stone-600">
+                    {venue.location}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-3 text-sm text-stone-700">
+                    <span>Capacity: {venue.capacity}</span>
+                    <span>
+                      {formatCurrency(venue.basePrice)}
+                    </span>
+                  </div>
+
+                  {venue.features?.length > 0 && (
+                    <p className="mt-4 text-xs text-stone-500">
+                      {venue.features.join(" | ")}
+                    </p>
+                  )}
+
+                  <p className="mt-4 text-sm font-semibold text-primary-800">
+                    {selected
+                      ? "Selected"
+                      : "Select this venue"}
+                  </p>
+                </button>
+              );
+            })}
           </div>
+
+          <Button
+            type="button"
+            onClick={handleBooking}
+            disabled={!selectedVenueId || booking}
+            className="mt-6"
+          >
+            <CalendarDays className="h-4 w-4" />
+            {booking
+              ? "Creating Booking..."
+              : "Confirm Venue Booking"}
+          </Button>
         </section>
       )}
     </div>
   );
+}
+
+function FormField({ label, error, children }) {
+  return (
+    <div>
+      <label
+        className="mb-2 block text-sm font-medium text-stone-700"
+      >
+        {label}
+      </label>
+
+      {children}
+
+      {error && (
+        <p className="mt-2 text-xs text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function inputStyles(error) {
+  return `w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition ${
+    error
+      ? "border-red-400 focus:border-red-500"
+      : "border-stone-300 focus:border-primary-600"
+  }`;
 }

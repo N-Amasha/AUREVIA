@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.security.core.AuthenticationException;
 
+import org.springframework.web.bind.MissingServletRequestParameterException;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -124,20 +126,40 @@ public class GlobalExceptionHandler {
         }
 
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> handleUnexpectedException(
-            Exception exception,
-            HttpServletRequest request
-    ) {
+
+
+        @ExceptionHandler(MissingServletRequestParameterException.class)
+        public ResponseEntity<ApiErrorResponse> handleMissingRequestParameter(
+                MissingServletRequestParameterException exception,
+                HttpServletRequest request
+        ) {
         ApiErrorResponse response = ApiErrorResponse.of(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                "An unexpected server error occurred.",
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "Required request parameter '"
+                        + exception.getParameterName()
+                        + "' is missing.",
                 request.getRequestURI()
         );
 
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(response);
-    }
+        return ResponseEntity.badRequest().body(response);
+        }
+
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ApiErrorResponse> handleUnexpectedException(
+                Exception exception,
+                HttpServletRequest request
+        ) {
+                ApiErrorResponse response = ApiErrorResponse.of(
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                        "An unexpected server error occurred.",
+                        request.getRequestURI()
+                );
+
+                return ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(response);
+        }
 }

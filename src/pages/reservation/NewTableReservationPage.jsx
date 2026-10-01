@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
-  Clock3,
   Info,
   Search,
   Users,
@@ -11,16 +10,45 @@ import {
 } from "lucide-react";
 
 import Button from "../../components/ui/Button";
+import { getAuth } from "../../api/authStorage";
+import {
+  createTableReservation,
+  getAvailableRestaurantTables,
+} from "../../api/reservationApi";
+
+function getToday() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getErrorMessage(error) {
+  return (
+    error.response?.data?.message ??
+    "Unable to complete the table-reservation request."
+  );
+}
 
 export default function NewTableReservationPage() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     reservationDate: "",
     startTime: "",
+    endTime: "",
     numberOfGuests: "",
   });
 
   const [errors, setErrors] = useState({});
+  const [availableTables, setAvailableTables] = useState([]);
+  const [selectedTableId, setSelectedTableId] = useState("");
   const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [reserving, setReserving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -35,31 +63,51 @@ export default function NewTableReservationPage() {
       [name]: "",
     }));
 
+    setAvailableTables([]);
+    setSelectedTableId("");
     setSearched(false);
+    setErrorMessage("");
   }
 
   function validateForm() {
-    const newErrors = {};
+    const validationErrors = {};
 
     if (!formData.reservationDate) {
-      newErrors.reservationDate = "Reservation date is required.";
+      validationErrors.reservationDate =
+        "Reservation date is required.";
+    } else if (formData.reservationDate < getToday()) {
+      validationErrors.reservationDate =
+        "Reservation date cannot be in the past.";
     }
 
     if (!formData.startTime) {
-      newErrors.startTime = "Reservation time is required.";
+      validationErrors.startTime =
+        "Start time is required.";
+    }
+
+    if (!formData.endTime) {
+      validationErrors.endTime =
+        "End time is required.";
+    } else if (
+      formData.startTime &&
+      formData.endTime <= formData.startTime
+    ) {
+      validationErrors.endTime =
+        "End time must be later than start time.";
     }
 
     if (!formData.numberOfGuests) {
-      newErrors.numberOfGuests = "Number of guests is required.";
+      validationErrors.numberOfGuests =
+        "Number of guests is required.";
     } else if (Number(formData.numberOfGuests) < 1) {
-      newErrors.numberOfGuests =
+      validationErrors.numberOfGuests =
         "Number of guests must be at least 1.";
     }
 
-    return newErrors;
+    return validationErrors;
   }
 
-  function handleSubmit(event) {
+  async function handleSearch(event) {
     event.preventDefault();
 
     const validationErrors = validateForm();
@@ -69,13 +117,77 @@ export default function NewTableReservationPage() {
       return;
     }
 
-    setErrors({});
-    setSearched(true);
+    try {
+      setSearching(true);
+      setErrorMessage("");
+      setSelectedTableId("");
+
+      const tables = await getAvailableRestaurantTables({
+        reservationDate: formData.reservationDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        numberOfGuests: Number(
+          formData.numberOfGuests,
+        ),
+      });
+
+      setAvailableTables(tables);
+      setSearched(true);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleReservation() {
+    if (!selectedTableId) {
+      setErrorMessage(
+        "Please select a table before confirming the reservation.",
+      );
+      return;
+    }
+
+    const customerId = getAuth()?.userId;
+
+    if (!customerId) {
+      setErrorMessage(
+        "Your customer account could not be identified.",
+      );
+      return;
+    }
+
+    try {
+      setReserving(true);
+      setErrorMessage("");
+
+      const createdReservation =
+        await createTableReservation({
+          customerId,
+          tableId: Number(selectedTableId),
+          reservationDate: formData.reservationDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          numberOfGuests: Number(
+            formData.numberOfGuests,
+          ),
+        });
+
+      navigate(
+        `/customer/reservations/table/${createdReservation.reservationId}`,
+        {
+          replace: true,
+        },
+      );
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setReserving(false);
+    }
   }
 
   return (
     <div>
-      {/* Back */}
       <Link
         to="/customer/reservations"
         className="inline-flex items-center gap-2 text-sm font-medium text-stone-600 transition hover:text-primary-900"
@@ -84,7 +196,6 @@ export default function NewTableReservationPage() {
         Back to Reservations
       </Link>
 
-      {/* Header */}
       <section className="mt-7">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-900">
           <UtensilsCrossed className="h-5 w-5 text-white" />
@@ -99,136 +210,94 @@ export default function NewTableReservationPage() {
         </h1>
 
         <p className="mt-3 max-w-2xl leading-7 text-stone-600">
-          Choose your preferred date, time and number of guests to check
-          suitable restaurant table options.
+          Search for tables that match your schedule and guest count.
         </p>
       </section>
 
       <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Reservation Search */}
         <section className="rounded-2xl border border-stone-200 bg-white p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-primary-950">
             Reservation details
           </h2>
 
-          <p className="mt-2 text-sm leading-6 text-stone-600">
-            Enter your dining requirements before checking availability.
-          </p>
-
           <form
-            onSubmit={handleSubmit}
+            onSubmit={handleSearch}
             className="mt-7 space-y-6"
             noValidate
           >
-            {/* Date */}
-            <div>
-              <label
-                htmlFor="reservationDate"
-                className="mb-2 block text-sm font-medium text-stone-700"
+            <FormField
+              label="Reservation Date"
+              error={errors.reservationDate}
+            >
+              <input
+                name="reservationDate"
+                type="date"
+                min={getToday()}
+                value={formData.reservationDate}
+                onChange={handleChange}
+                className={inputStyles(
+                  errors.reservationDate,
+                )}
+              />
+            </FormField>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <FormField
+                label="Start Time"
+                error={errors.startTime}
               >
-                Reservation Date
-              </label>
-
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-
                 <input
-                  id="reservationDate"
-                  name="reservationDate"
-                  type="date"
-                  value={formData.reservationDate}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                    errors.reservationDate
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-stone-300 focus:border-primary-600"
-                  }`}
-                />
-              </div>
-
-              {errors.reservationDate && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.reservationDate}
-                </p>
-              )}
-            </div>
-
-            {/* Time */}
-            <div>
-              <label
-                htmlFor="startTime"
-                className="mb-2 block text-sm font-medium text-stone-700"
-              >
-                Preferred Time
-              </label>
-
-              <div className="relative">
-                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-
-                <input
-                  id="startTime"
                   name="startTime"
                   type="time"
                   value={formData.startTime}
                   onChange={handleChange}
-                  className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                    errors.startTime
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-stone-300 focus:border-primary-600"
-                  }`}
+                  className={inputStyles(errors.startTime)}
                 />
-              </div>
+              </FormField>
 
-              {errors.startTime && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.startTime}
-                </p>
-              )}
-            </div>
-
-            {/* Guests */}
-            <div>
-              <label
-                htmlFor="numberOfGuests"
-                className="mb-2 block text-sm font-medium text-stone-700"
+              <FormField
+                label="End Time"
+                error={errors.endTime}
               >
-                Number of Guests
-              </label>
-
-              <div className="relative">
-                <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-
                 <input
-                  id="numberOfGuests"
-                  name="numberOfGuests"
-                  type="number"
-                  min="1"
-                  value={formData.numberOfGuests}
+                  name="endTime"
+                  type="time"
+                  value={formData.endTime}
                   onChange={handleChange}
-                  placeholder="Enter guest count"
-                  className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition ${
-                    errors.numberOfGuests
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-stone-300 focus:border-primary-600"
-                  }`}
+                  className={inputStyles(errors.endTime)}
                 />
-              </div>
-
-              {errors.numberOfGuests && (
-                <p className="mt-2 text-xs text-red-600">
-                  {errors.numberOfGuests}
-                </p>
-              )}
+              </FormField>
             </div>
 
-            <Button type="submit" className="w-full sm:w-auto">
+            <FormField
+              label="Number of Guests"
+              error={errors.numberOfGuests}
+            >
+              <input
+                name="numberOfGuests"
+                type="number"
+                min="1"
+                value={formData.numberOfGuests}
+                onChange={handleChange}
+                placeholder="Enter guest count"
+                className={inputStyles(
+                  errors.numberOfGuests,
+                )}
+              />
+            </FormField>
+
+            <Button
+              type="submit"
+              disabled={searching}
+            >
               <Search className="h-4 w-4" />
-              Check Availability
+              {searching
+                ? "Searching..."
+                : "Check Availability"}
             </Button>
           </form>
         </section>
 
-        {/* Information */}
         <aside className="rounded-2xl bg-primary-950 p-6 text-white sm:p-7">
           <Info className="h-6 w-6 text-gold-400" />
 
@@ -237,66 +306,122 @@ export default function NewTableReservationPage() {
           </h2>
 
           <div className="mt-6 space-y-5 text-sm leading-6 text-stone-300">
-            <div>
-              <span className="font-semibold text-white">01.</span>{" "}
-              Enter your preferred date, time and guest count.
-            </div>
-
-            <div>
-              <span className="font-semibold text-white">02.</span>{" "}
-              Aurevia checks suitable tables against reservation data.
-            </div>
-
-            <div>
-              <span className="font-semibold text-white">03.</span>{" "}
-              Select an available table and review applicable pricing.
-            </div>
-
-            <div>
-              <span className="font-semibold text-white">04.</span>{" "}
-              Review and confirm your reservation.
-            </div>
+            <p>1. Enter your date, times and guest count.</p>
+            <p>2. Aurevia removes unavailable and overlapping tables.</p>
+            <p>3. Select a table with enough capacity.</p>
+            <p>4. Confirm the reservation with PENDING status.</p>
           </div>
         </aside>
       </div>
 
-      {/* Availability Result */}
-      {searched && (
-        <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-6">
-          <h2 className="font-semibold text-primary-950">
-            Availability check ready for backend integration
+      {errorMessage && (
+        <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
+
+      {searched && availableTables.length === 0 && (
+        <section className="mt-8 rounded-2xl border border-dashed border-stone-300 bg-white p-8 text-center">
+          <UtensilsCrossed className="mx-auto h-7 w-7 text-stone-400" />
+
+          <h2 className="mt-4 font-semibold text-primary-950">
+            No available tables found
           </h2>
 
-          <p className="mt-2 text-sm leading-6 text-primary-800">
-            Your reservation criteria are valid. Available restaurant
-            tables will be displayed here when the reservation service
-            and database are connected.
+          <p className="mt-2 text-sm text-stone-600">
+            Try another date, time range or guest count.
           </p>
+        </section>
+      )}
 
-          <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">Date</span>
-              <span className="mt-1 block font-medium text-primary-950">
-                {formData.reservationDate}
-              </span>
-            </div>
+      {availableTables.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-xl font-semibold text-primary-950">
+            Available table options
+          </h2>
 
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">Time</span>
-              <span className="mt-1 block font-medium text-primary-950">
-                {formData.startTime}
-              </span>
-            </div>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {availableTables.map((table) => {
+              const selected =
+                Number(selectedTableId) === table.tableId;
 
-            <div className="rounded-xl bg-white p-4">
-              <span className="block text-xs text-stone-500">Guests</span>
-              <span className="mt-1 block font-medium text-primary-950">
-                {formData.numberOfGuests}
-              </span>
-            </div>
+              return (
+                <button
+                  key={table.tableId}
+                  type="button"
+                  onClick={() =>
+                    setSelectedTableId(
+                      String(table.tableId),
+                    )
+                  }
+                  className={`rounded-2xl border p-6 text-left transition ${
+                    selected
+                      ? "border-primary-700 bg-primary-50"
+                      : "border-stone-200 bg-white hover:border-primary-300"
+                  }`}
+                >
+                  <p className="text-lg font-semibold text-primary-950">
+                    Table {table.tableNumber}
+                  </p>
+
+                  <p className="mt-2 text-sm text-stone-600">
+                    {table.location}
+                  </p>
+
+                  <div className="mt-4 flex items-center gap-2 text-sm text-stone-700">
+                    <Users className="h-4 w-4" />
+                    Capacity: {table.capacity}
+                  </div>
+
+                  <p className="mt-4 text-sm font-semibold text-primary-800">
+                    {selected
+                      ? "Selected"
+                      : "Select this table"}
+                  </p>
+                </button>
+              );
+            })}
           </div>
+
+          <Button
+            type="button"
+            onClick={handleReservation}
+            disabled={!selectedTableId || reserving}
+            className="mt-6"
+          >
+            <CalendarDays className="h-4 w-4" />
+            {reserving
+              ? "Creating Reservation..."
+              : "Confirm Table Reservation"}
+          </Button>
         </section>
       )}
     </div>
   );
+}
+
+function FormField({ label, error, children }) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-stone-700">
+        {label}
+      </label>
+
+      {children}
+
+      {error && (
+        <p className="mt-2 text-xs text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function inputStyles(error) {
+  return `w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition ${
+    error
+      ? "border-red-400 focus:border-red-500"
+      : "border-stone-300 focus:border-primary-600"
+  }`;
 }
