@@ -7,6 +7,7 @@ import com.aurevia.billing.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import java.security.Principal;
 
 import java.util.List;
 
@@ -32,11 +33,13 @@ public class PaymentController {
     public PaymentResponse verifyPayment(
             @PathVariable Integer paymentId,
             @Valid @RequestBody
-            PaymentVerificationRequest request
+            PaymentVerificationRequest request,
+            Principal principal
     ) {
         return paymentService.verifyPayment(
                 paymentId,
-                request
+                request,
+                principal.getName()
         );
     }
 

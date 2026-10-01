@@ -1,14 +1,151 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   FileText,
-  Info,
+  LoaderCircle,
   ReceiptText,
   Search,
 } from "lucide-react";
 
+import { getInvoicesByStatus } from "../../api/billingApi";
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+  }).format(Number(value ?? 0));
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat("en-LK", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function getReference(invoice) {
+  if (invoice.reservationId) {
+    return {
+      value: `RES-${invoice.reservationId}`,
+      type: "TABLE_RESERVATION",
+    };
+  }
+
+  if (invoice.eventBookingId) {
+    return {
+      value: `VEN-${invoice.eventBookingId}`,
+      type: "VENUE_BOOKING",
+    };
+  }
+
+  if (invoice.orderId) {
+    return {
+      value: `ORD-${invoice.orderId}`,
+      type: "CUSTOMER_ORDER",
+    };
+  }
+
+  return {
+    value: "Not available",
+    type: "OTHER",
+  };
+}
+
 export default function CashierInvoicesPage() {
+  const [invoices, setInvoices] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    async function loadInvoices() {
+      try {
+        const [issued, partiallyPaid, paid] =
+          await Promise.all([
+            getInvoicesByStatus("ISSUED"),
+            getInvoicesByStatus("PARTIALLY_PAID"),
+            getInvoicesByStatus("PAID"),
+          ]);
+
+        const combinedInvoices = [
+          ...issued,
+          ...partiallyPaid,
+          ...paid,
+        ].sort(
+          (first, second) =>
+            new Date(second.invoiceDate ?? 0) -
+            new Date(first.invoiceDate ?? 0),
+        );
+
+        setInvoices(combinedInvoices);
+      } catch (error) {
+        setErrorMessage(
+          error.response?.data?.message ??
+            "Unable to load invoice records.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadInvoices();
+  }, []);
+
+  const paidCount = invoices.filter(
+    (invoice) => invoice.invoiceStatus === "PAID",
+  ).length;
+
+  const awaitingPaymentCount = invoices.filter(
+    (invoice) => invoice.invoiceStatus !== "PAID",
+  ).length;
+
+  const filteredInvoices = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return invoices.filter((invoice) => {
+      const reference = getReference(invoice);
+
+      const matchesSearch =
+        !normalizedSearch ||
+        [
+          `INV-${invoice.invoiceId}`,
+          invoice.customerName,
+          reference.value,
+        ]
+          .filter(Boolean)
+          .some((value) =>
+            String(value)
+              .toLowerCase()
+              .includes(normalizedSearch),
+          );
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        invoice.invoiceStatus === statusFilter;
+
+      const matchesType =
+        typeFilter === "ALL" ||
+        reference.type === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [invoices, searchTerm, statusFilter, typeFilter]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-64 items-center justify-center">
+        <LoaderCircle className="h-7 w-7 animate-spin text-primary-700" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* Header */}
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-600">
           Billing & Payment Management
@@ -19,37 +156,34 @@ export default function CashierInvoicesPage() {
         </h1>
 
         <p className="mt-3 max-w-2xl leading-7 text-stone-600">
-          Review invoices generated for customer reservations and event
-          bookings.
+          Review invoices generated for customer reservations,
+          venue bookings, and orders.
         </p>
       </section>
 
-      {/* Backend Notice */}
-      <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-5">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-700" />
+      {errorMessage && (
+        <section className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          {errorMessage}
+        </section>
+      )}
 
-          <div>
-            <h2 className="font-semibold text-primary-950">
-              Invoice records not connected yet
-            </h2>
-
-            <p className="mt-1 text-sm leading-6 text-primary-800">
-              Invoice records will be retrieved from the Aurevia backend
-              after the Billing & Payment service is implemented.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Summary */}
       <section className="mt-8 grid gap-4 sm:grid-cols-3">
-        <SummaryCard label="Total Invoices" />
-        <SummaryCard label="Awaiting Payment" />
-        <SummaryCard label="Paid / Verified" />
+        <SummaryCard
+          label="Total Invoices"
+          value={invoices.length}
+        />
+
+        <SummaryCard
+          label="Awaiting Payment"
+          value={awaitingPaymentCount}
+        />
+
+        <SummaryCard
+          label="Paid / Verified"
+          value={paidCount}
+        />
       </section>
 
-      {/* Filters */}
       <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-5">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
           <div className="relative">
@@ -57,34 +191,51 @@ export default function CashierInvoicesPage() {
 
             <input
               type="search"
-              disabled
-              placeholder="Search invoice or customer"
-              className="w-full cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 py-3 pl-10 pr-4 text-sm text-stone-500 outline-none"
+              value={searchTerm}
+              onChange={(event) =>
+                setSearchTerm(event.target.value)
+              }
+              placeholder="Search invoice, reference or customer"
+              className="w-full rounded-xl border border-stone-300 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-primary-600"
             />
           </div>
 
           <select
-            disabled
-            className="cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500 outline-none"
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(event.target.value)
+            }
+            className="rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none focus:border-primary-600"
           >
-            <option>All Invoice Statuses</option>
+            <option value="ALL">All Invoice Statuses</option>
+            <option value="ISSUED">Issued</option>
+            <option value="PARTIALLY_PAID">
+              Partially Paid
+            </option>
+            <option value="PAID">Paid</option>
           </select>
 
           <select
-            disabled
-            className="cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500 outline-none"
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(event.target.value)
+            }
+            className="rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none focus:border-primary-600"
           >
-            <option>All Booking Types</option>
+            <option value="ALL">All Reference Types</option>
+            <option value="TABLE_RESERVATION">
+              Table Reservation
+            </option>
+            <option value="VENUE_BOOKING">
+              Venue Booking
+            </option>
+            <option value="CUSTOMER_ORDER">
+              Customer Order
+            </option>
           </select>
         </div>
-
-        <p className="mt-3 text-xs leading-5 text-stone-500">
-          Search and filtering will become available when invoice records
-          are loaded from the backend.
-        </p>
       </section>
 
-      {/* Invoice Records */}
       <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <div className="border-b border-stone-200 p-6">
           <div className="flex items-start gap-3">
@@ -96,40 +247,107 @@ export default function CashierInvoicesPage() {
               </h2>
 
               <p className="mt-1 text-sm text-stone-600">
-                Customer billing records will appear here.
+                {filteredInvoices.length} invoice
+                {filteredInvoices.length === 1 ? "" : "s"} found.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="hidden grid-cols-7 gap-4 border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-stone-500 lg:grid">
+        <div className="hidden grid-cols-8 gap-4 border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-stone-500 lg:grid">
           <span>Invoice</span>
           <span>Customer</span>
           <span>Reference</span>
+          <span>Type</span>
           <span>Date</span>
-          <span>Amount</span>
+          <span>Total</span>
+          <span>Outstanding</span>
           <span>Status</span>
-          <span>Action</span>
         </div>
 
-        {/* Empty State */}
-        <div className="px-6 py-14 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50">
-            <FileText className="h-6 w-6 text-primary-700" />
+        {filteredInvoices.length === 0 ? (
+          <div className="px-6 py-14 text-center">
+            <FileText className="mx-auto h-8 w-8 text-primary-700" />
+
+            <h3 className="mt-5 font-semibold text-primary-950">
+              No invoice records available
+            </h3>
+
+            <p className="mt-2 text-sm text-stone-600">
+              No invoices match the selected filters.
+            </p>
           </div>
+        ) : (
+          <div className="divide-y divide-stone-200">
+            {filteredInvoices.map((invoice) => {
+              const reference = getReference(invoice);
 
-          <h3 className="mt-5 font-semibold text-primary-950">
-            No invoice records available
-          </h3>
+              return (
+                <article
+                  key={invoice.invoiceId}
+                  className="grid gap-4 px-6 py-5 lg:grid-cols-8 lg:items-center"
+                >
+                  <DataItem
+                    label="Invoice"
+                    value={`INV-${invoice.invoiceId}`}
+                    strong
+                  />
 
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-600">
-            Invoice records will appear here after billing data is
-            connected to the backend.
-          </p>
-        </div>
+                  <DataItem
+                    label="Customer"
+                    value={invoice.customerName}
+                  />
+
+                  <DataItem
+                    label="Reference"
+                    value={reference.value}
+                  />
+
+                  <DataItem
+                    label="Type"
+                    value={reference.type.replaceAll("_", " ")}
+                  />
+
+                  <DataItem
+                    label="Date"
+                    value={formatDateTime(invoice.invoiceDate)}
+                  />
+
+                  <DataItem
+                    label="Total"
+                    value={formatCurrency(invoice.totalAmount)}
+                    strong
+                  />
+
+                  <DataItem
+                    label="Outstanding"
+                    value={formatCurrency(
+                      invoice.outstandingAmount,
+                    )}
+                    strong
+                  />
+
+                  <div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        invoice.invoiceStatus === "PAID"
+                          ? "bg-green-100 text-green-800"
+                          : invoice.invoiceStatus ===
+                              "PARTIALLY_PAID"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {invoice.invoiceStatus.replaceAll("_", " ")}
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Responsibility Note */}
       <section className="mt-8 rounded-2xl bg-primary-950 p-6 text-white sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold-400">
           Cashier Responsibility
@@ -143,19 +361,19 @@ export default function CashierInvoicesPage() {
           <FlowStep
             number="01"
             title="Invoice"
-            text="The invoice records what the customer is required to pay."
+            text="The invoice records the amount the customer must pay."
           />
 
           <FlowStep
             number="02"
             title="Payment"
-            text="The payment record represents the customer's submitted payment evidence."
+            text="The customer submits payment information against the invoice."
           />
 
           <FlowStep
             number="03"
             title="Verification"
-            text="The cashier verifies the payment evidence against the relevant invoice."
+            text="The cashier approves or rejects the pending payment."
           />
         </div>
       </section>
@@ -163,7 +381,7 @@ export default function CashierInvoicesPage() {
   );
 }
 
-function SummaryCard({ label }) {
+function SummaryCard({ label, value }) {
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-5">
       <FileText className="h-5 w-5 text-primary-700" />
@@ -173,7 +391,25 @@ function SummaryCard({ label }) {
       </p>
 
       <p className="mt-1 text-2xl font-bold text-primary-950">
-        —
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DataItem({ label, value, strong = false }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase text-stone-400 lg:hidden">
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 break-words text-sm text-stone-700 lg:mt-0 ${
+          strong ? "font-semibold text-primary-950" : ""
+        }`}
+      >
+        {value}
       </p>
     </div>
   );
@@ -186,9 +422,7 @@ function FlowStep({ number, title, text }) {
         {number}
       </p>
 
-      <h3 className="mt-2 font-semibold">
-        {title}
-      </h3>
+      <h3 className="mt-2 font-semibold">{title}</h3>
 
       <p className="mt-2 text-sm leading-6 text-stone-300">
         {text}

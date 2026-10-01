@@ -219,7 +219,8 @@ class PaymentServiceTest {
                 BusinessRuleException.class,
                 () -> paymentService.verifyPayment(
                         1,
-                        verificationRequest("APPROVED")
+                        verificationRequest("APPROVED"),
+                        "cashier1@aurevia.test"
                 )
         );
     }
@@ -234,8 +235,9 @@ class PaymentServiceTest {
         assertThrows(
                 BusinessRuleException.class,
                 () -> paymentService.verifyPayment(
-                        1,
-                        verificationRequest("UNKNOWN")
+                1,
+                verificationRequest("UNKNOWN"),
+                "cashier1@aurevia.test"
                 )
         );
     }
@@ -252,8 +254,11 @@ class PaymentServiceTest {
 
         when(paymentRepository.findById(1))
                 .thenReturn(Optional.of(payment));
-        when(cashierRepository.findById(16))
-                .thenReturn(Optional.of(cashier));
+        when(cashierRepository
+        .findByEmployeeUserAccountEmailIgnoreCase(
+                "cashier1@aurevia.test"
+        ))
+        .thenReturn(Optional.of(cashier));
         when(paymentRepository
                 .calculateApprovedAmountForInvoice(1))
                 .thenReturn(BigDecimal.ZERO)
@@ -265,9 +270,10 @@ class PaymentServiceTest {
 
         PaymentResponse result =
                 paymentService.verifyPayment(
-                        1,
-                        verificationRequest("APPROVED")
-                );
+                1,
+                verificationRequest("APPROVED"),
+                "cashier1@aurevia.test"
+        );
 
         assertSame(response, result);
         assertEquals("APPROVED", payment.getPaymentStatus());
@@ -304,14 +310,11 @@ class PaymentServiceTest {
         );
     }
 
-    private PaymentVerificationRequest verificationRequest(
-            String status
-    ) {
-        return new PaymentVerificationRequest(
-                16,
-                status
-        );
-    }
+        private PaymentVerificationRequest verificationRequest(
+                String status
+        ) {
+        return new PaymentVerificationRequest(status);
+        }
 
     private PaymentResponse response() {
         return new PaymentResponse(

@@ -88,24 +88,29 @@ class PaymentControllerTest {
     }
 
     @Test
-    void shouldVerifyPayment() throws Exception {
-        when(paymentService.verifyPayment(eq(1), any()))
-                .thenReturn(response("APPROVED"));
+        void shouldVerifyPayment() throws Exception {
+        when(paymentService.verifyPayment(
+                eq(1),
+                any(),
+                eq("cashier1@aurevia.test")
+        )).thenReturn(response("APPROVED"));
 
         mockMvc.perform(
                         patch("/api/payments/1/verification")
+                                .principal(
+                                        () -> "cashier1@aurevia.test"
+                                )
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "cashierId": 16,
-                                          "paymentStatus": "APPROVED"
+                                        "paymentStatus": "APPROVED"
                                         }
                                         """)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentStatus")
                         .value("APPROVED"));
-    }
+        }
 
     @Test
     void shouldGetPaymentById() throws Exception {

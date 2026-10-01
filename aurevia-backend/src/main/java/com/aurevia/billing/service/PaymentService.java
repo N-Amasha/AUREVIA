@@ -120,9 +120,10 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse verifyPayment(
-            Integer paymentId,
-            PaymentVerificationRequest request
-    ) {
+        Integer paymentId,
+        PaymentVerificationRequest request,
+        String cashierEmail
+) {
         Payment payment = findPayment(paymentId);
 
         if (!"PENDING".equalsIgnoreCase(
@@ -142,15 +143,23 @@ public class PaymentService {
             );
         }
 
+        if (cashierEmail == null || cashierEmail.isBlank()) {
+    throw new IllegalArgumentException(
+            "Authenticated cashier email is required."
+    );
+}
+
         Cashier cashier = cashierRepository
-                .findById(request.cashierId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Cashier",
-                                "cashierId",
-                                request.cashierId()
-                        )
-                );
+        .findByEmployeeUserAccountEmailIgnoreCase(
+                cashierEmail
+        )
+        .orElseThrow(() ->
+                new ResourceNotFoundException(
+                        "Cashier",
+                        "email",
+                        cashierEmail
+                )
+        );
 
         if ("APPROVED".equals(paymentStatus)) {
             BigDecimal approvedAfterVerification =
