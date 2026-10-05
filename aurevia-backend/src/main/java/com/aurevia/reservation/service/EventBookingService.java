@@ -4,6 +4,7 @@ import com.aurevia.exception.BusinessRuleException;
 import com.aurevia.exception.ResourceNotFoundException;
 import com.aurevia.reservation.dto.EventBookingCreateRequest;
 import com.aurevia.reservation.dto.EventBookingResponse;
+import com.aurevia.reservation.dto.EventBookingUpdateRequest;
 import com.aurevia.reservation.entity.EventBooking;
 import com.aurevia.reservation.entity.PricingRule;
 import com.aurevia.reservation.entity.Venue;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -73,7 +75,7 @@ public class EventBookingService {
 
         BigDecimal totalAmount = calculateTotalAmount(
                 venue,
-                request
+                request.bookingDate()
         );
 
         EventBooking eventBooking = new EventBooking(
@@ -89,6 +91,67 @@ public class EventBookingService {
                 eventBookingRepository.save(eventBooking);
 
         return eventBookingMapper.toResponse(savedBooking);
+    }
+
+    @Transactional
+    public EventBookingResponse updateEventBooking(
+            Integer eventBookingId,
+            EventBookingUpdateRequest request
+    ) {
+        EventBooking eventBooking =
+                findEventBooking(eventBookingId);
+
+        validatePendingBooking(eventBooking);
+
+        Venue venue = venueRepository
+                .findById(request.venueId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Venue",
+                                "venueId",
+                                request.venueId()
+                        )
+                );
+
+        validateVenueAvailability(venue);
+        validateGuestCapacity(venue, request.guestCount());
+
+        validateBookingConflictForUpdate(
+                eventBookingId,
+                request
+        );
+
+        BigDecimal totalAmount = calculateTotalAmount(
+                venue,
+                request.bookingDate()
+        );
+
+        eventBooking.setVenue(venue);
+        eventBooking.setBookingDate(request.bookingDate());
+        eventBooking.setGuestCount(request.guestCount());
+        eventBooking.setTotalAmount(totalAmount);
+
+        EventBooking updatedBooking =
+                eventBookingRepository.save(eventBooking);
+
+        return eventBookingMapper.toResponse(updatedBooking);
+    }
+
+    @Transactional
+    public EventBookingResponse cancelEventBooking(
+            Integer eventBookingId
+    ) {
+        EventBooking eventBooking =
+                findEventBooking(eventBookingId);
+
+        validatePendingBooking(eventBooking);
+
+        eventBooking.setBookingStatus("CANCELLED");
+
+        EventBooking cancelledBooking =
+                eventBookingRepository.save(eventBooking);
+
+        return eventBookingMapper.toResponse(cancelledBooking);
     }
 
     public EventBookingResponse getEventBookingById(
@@ -190,20 +253,54 @@ public class EventBookingService {
 
         if (conflictExists) {
             throw new BusinessRuleException(
-                    "The selected venue is already booked for the requested date."
+                    "The selected venue is already booked "
+                            + "for the requested date."
+            );
+        }
+    }
+
+    private void validateBookingConflictForUpdate(
+            Integer eventBookingId,
+            EventBookingUpdateRequest request
+    ) {
+        boolean conflictExists =
+                !eventBookingRepository
+                        .findVenueBookingConflictsExcludingBooking(
+                                request.venueId(),
+                                request.bookingDate(),
+                                eventBookingId
+                        )
+                        .isEmpty();
+
+        if (conflictExists) {
+            throw new BusinessRuleException(
+                    "The selected venue is already booked "
+                            + "for the requested date."
+            );
+        }
+    }
+
+    private void validatePendingBooking(
+            EventBooking eventBooking
+    ) {
+        if (!"PENDING".equalsIgnoreCase(
+                eventBooking.getBookingStatus()
+        )) {
+            throw new BusinessRuleException(
+                    "Only pending event bookings can be modified."
             );
         }
     }
 
     private BigDecimal calculateTotalAmount(
             Venue venue,
-            EventBookingCreateRequest request
+            LocalDate bookingDate
     ) {
         List<PricingRule> pricingRules =
                 pricingRuleRepository
                         .findApprovedRulesForDate(
                                 venue.getVenueId(),
-                                request.bookingDate()
+                                bookingDate
                         );
 
         if (pricingRules.isEmpty()) {

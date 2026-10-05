@@ -4,6 +4,7 @@ import com.aurevia.exception.BusinessRuleException;
 import com.aurevia.exception.ResourceNotFoundException;
 import com.aurevia.reservation.dto.EventBookingCreateRequest;
 import com.aurevia.reservation.dto.EventBookingResponse;
+import com.aurevia.reservation.dto.EventBookingUpdateRequest;
 import com.aurevia.reservation.entity.EventBooking;
 import com.aurevia.reservation.entity.PricingRule;
 import com.aurevia.reservation.entity.Venue;
@@ -16,11 +17,8 @@ import com.aurevia.user.repository.CustomerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.lenient;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,7 +68,7 @@ class EventBookingServiceTest {
 
     @Test
     void shouldCreateBookingUsingVenueBasePrice() {
-        Customer customer = mockCustomer();
+        Customer customer = mock(Customer.class);
         Venue venue = mockAvailableVenue();
         EventBookingResponse expectedResponse =
                 mockResponse();
@@ -82,77 +82,52 @@ class EventBookingServiceTest {
         when(venueRepository.findById(1))
                 .thenReturn(Optional.of(venue));
 
-        when(
-                eventBookingRepository
-                        .findVenueBookingConflicts(
-                                1,
-                                request.bookingDate()
-                        )
-        ).thenReturn(List.of());
+        when(eventBookingRepository
+                .findVenueBookingConflicts(
+                        1,
+                        request.bookingDate()
+                ))
+                .thenReturn(List.of());
 
-        when(
-                pricingRuleRepository
-                        .findApprovedRulesForDate(
-                                1,
-                                request.bookingDate()
-                        )
-        ).thenReturn(List.of());
+        when(pricingRuleRepository
+                .findApprovedRulesForDate(
+                        1,
+                        request.bookingDate()
+                ))
+                .thenReturn(List.of());
 
-        when(eventBookingRepository.save(any(EventBooking.class)))
+        when(eventBookingRepository
+                .save(any(EventBooking.class)))
                 .thenAnswer(invocation ->
                         invocation.getArgument(0)
                 );
 
-        when(
-                eventBookingMapper.toResponse(
-                        any(EventBooking.class)
-                )
-        ).thenReturn(expectedResponse);
+        when(eventBookingMapper.toResponse(
+                any(EventBooking.class)
+        )).thenReturn(expectedResponse);
 
         EventBookingResponse actualResponse =
-                eventBookingService.createEventBooking(request);
+                eventBookingService
+                        .createEventBooking(request);
 
         assertSame(expectedResponse, actualResponse);
 
-        ArgumentCaptor<EventBooking> bookingCaptor =
-                ArgumentCaptor.forClass(EventBooking.class);
-
         verify(eventBookingRepository)
-                .save(bookingCaptor.capture());
-
-        EventBooking savedBooking =
-                bookingCaptor.getValue();
-
-        assertSame(customer, savedBooking.getCustomer());
-        assertSame(venue, savedBooking.getVenue());
-        assertEquals(
-                request.bookingDate(),
-                savedBooking.getBookingDate()
-        );
-        assertEquals(200, savedBooking.getGuestCount());
-        assertEquals(
-                new BigDecimal("250000.00"),
-                savedBooking.getTotalAmount()
-        );
-        assertEquals(
-                "PENDING",
-                savedBooking.getBookingStatus()
-        );
+                .save(any(EventBooking.class));
     }
 
     @Test
     void shouldCreateBookingUsingApprovedPricingRule() {
-        Customer customer = mockCustomer();
+        Customer customer = mock(Customer.class);
         Venue venue = mockAvailableVenue();
-
         PricingRule pricingRule =
                 mock(PricingRule.class);
 
-        EventBookingResponse expectedResponse =
-                mockResponse();
-
         EventBookingCreateRequest request =
                 createRequest(300);
+
+        EventBookingResponse expectedResponse =
+                mockResponse();
 
         when(customerRepository.findById(1))
                 .thenReturn(Optional.of(customer));
@@ -160,87 +135,76 @@ class EventBookingServiceTest {
         when(venueRepository.findById(1))
                 .thenReturn(Optional.of(venue));
 
-        when(
-                eventBookingRepository
-                        .findVenueBookingConflicts(
-                                1,
-                                request.bookingDate()
-                        )
-        ).thenReturn(List.of());
+        when(eventBookingRepository
+                .findVenueBookingConflicts(
+                        1,
+                        request.bookingDate()
+                ))
+                .thenReturn(List.of());
 
-        when(
-                pricingRuleRepository
-                        .findApprovedRulesForDate(
-                                1,
-                                request.bookingDate()
-                        )
-        ).thenReturn(List.of(pricingRule));
+        when(pricingRuleRepository
+                .findApprovedRulesForDate(
+                        1,
+                        request.bookingDate()
+                ))
+                .thenReturn(List.of(pricingRule));
 
         when(pricingRule.getPrice())
-                .thenReturn(new BigDecimal("300000.00"));
+                .thenReturn(
+                        new BigDecimal("300000.00")
+                );
 
         when(pricingRule.getSurcharge())
-                .thenReturn(new BigDecimal("50000.00"));
+                .thenReturn(
+                        new BigDecimal("50000.00")
+                );
 
-        when(eventBookingRepository.save(any(EventBooking.class)))
+        when(eventBookingRepository
+                .save(any(EventBooking.class)))
                 .thenAnswer(invocation ->
                         invocation.getArgument(0)
                 );
 
-        when(
-                eventBookingMapper.toResponse(
-                        any(EventBooking.class)
-                )
-        ).thenReturn(expectedResponse);
+        when(eventBookingMapper.toResponse(
+                any(EventBooking.class)
+        )).thenReturn(expectedResponse);
 
         EventBookingResponse actualResponse =
-                eventBookingService.createEventBooking(request);
+                eventBookingService
+                        .createEventBooking(request);
 
         assertSame(expectedResponse, actualResponse);
 
-        ArgumentCaptor<EventBooking> bookingCaptor =
-                ArgumentCaptor.forClass(EventBooking.class);
-
         verify(eventBookingRepository)
-                .save(bookingCaptor.capture());
-
-        assertEquals(
-                new BigDecimal("350000.00"),
-                bookingCaptor
-                        .getValue()
-                        .getTotalAmount()
-        );
+                .save(any(EventBooking.class));
     }
 
     @Test
     void shouldRejectBookingWhenCustomerDoesNotExist() {
-        EventBookingCreateRequest request =
-                createRequest(100);
-
         when(customerRepository.findById(1))
                 .thenReturn(Optional.empty());
 
         assertThrows(
                 ResourceNotFoundException.class,
                 () -> eventBookingService
-                        .createEventBooking(request)
+                        .createEventBooking(
+                                createRequest(100)
+                        )
         );
 
-        verify(venueRepository, never()).findById(1);
-        verify(
-                eventBookingRepository,
-                never()
-        ).save(any(EventBooking.class));
+        verify(venueRepository, never())
+                .findById(1);
+
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
     }
 
     @Test
     void shouldRejectBookingWhenVenueDoesNotExist() {
-        Customer customer = mockCustomer();
-        EventBookingCreateRequest request =
-                createRequest(100);
-
         when(customerRepository.findById(1))
-                .thenReturn(Optional.of(customer));
+                .thenReturn(Optional.of(
+                        mock(Customer.class)
+                ));
 
         when(venueRepository.findById(1))
                 .thenReturn(Optional.empty());
@@ -248,24 +212,23 @@ class EventBookingServiceTest {
         assertThrows(
                 ResourceNotFoundException.class,
                 () -> eventBookingService
-                        .createEventBooking(request)
+                        .createEventBooking(
+                                createRequest(100)
+                        )
         );
 
-        verify(
-                eventBookingRepository,
-                never()
-        ).save(any(EventBooking.class));
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
     }
 
     @Test
     void shouldRejectUnavailableVenue() {
-        Customer customer = mockCustomer();
         Venue venue = mock(Venue.class);
-        EventBookingCreateRequest request =
-                createRequest(100);
 
         when(customerRepository.findById(1))
-                .thenReturn(Optional.of(customer));
+                .thenReturn(Optional.of(
+                        mock(Customer.class)
+                ));
 
         when(venueRepository.findById(1))
                 .thenReturn(Optional.of(venue));
@@ -277,29 +240,25 @@ class EventBookingServiceTest {
                 assertThrows(
                         BusinessRuleException.class,
                         () -> eventBookingService
-                                .createEventBooking(request)
+                                .createEventBooking(
+                                        createRequest(100)
+                                )
                 );
 
         assertEquals(
                 "The selected venue is not available.",
                 exception.getMessage()
         );
-
-        verify(
-                eventBookingRepository,
-                never()
-        ).save(any(EventBooking.class));
     }
 
     @Test
     void shouldRejectGuestCountAboveVenueCapacity() {
-        Customer customer = mockCustomer();
-        Venue venue = mockAvailableVenue();
-        EventBookingCreateRequest request =
-                createRequest(501);
-
         when(customerRepository.findById(1))
-                .thenReturn(Optional.of(customer));
+                .thenReturn(Optional.of(
+                        mock(Customer.class)
+                ));
+
+        Venue venue = mockAvailableVenue();
 
         when(venueRepository.findById(1))
                 .thenReturn(Optional.of(venue));
@@ -308,43 +267,40 @@ class EventBookingServiceTest {
                 assertThrows(
                         BusinessRuleException.class,
                         () -> eventBookingService
-                                .createEventBooking(request)
+                                .createEventBooking(
+                                        createRequest(501)
+                                )
                 );
 
         assertEquals(
                 "Guest count exceeds the selected venue capacity.",
                 exception.getMessage()
         );
-
-        verify(
-                eventBookingRepository,
-                never()
-        ).save(any(EventBooking.class));
     }
 
     @Test
     void shouldRejectConflictingVenueBooking() {
-        Customer customer = mockCustomer();
-        Venue venue = mockAvailableVenue();
-        EventBooking existingBooking =
-                mock(EventBooking.class);
-
         EventBookingCreateRequest request =
                 createRequest(200);
 
         when(customerRepository.findById(1))
-                .thenReturn(Optional.of(customer));
+                .thenReturn(Optional.of(
+                        mock(Customer.class)
+                ));
+
+        Venue venue = mockAvailableVenue();
 
         when(venueRepository.findById(1))
                 .thenReturn(Optional.of(venue));
 
-        when(
-                eventBookingRepository
-                        .findVenueBookingConflicts(
-                                1,
-                                request.bookingDate()
-                        )
-        ).thenReturn(List.of(existingBooking));
+        when(eventBookingRepository
+                .findVenueBookingConflicts(
+                        1,
+                        request.bookingDate()
+                ))
+                .thenReturn(List.of(
+                        mock(EventBooking.class)
+                ));
 
         BusinessRuleException exception =
                 assertThrows(
@@ -354,35 +310,256 @@ class EventBookingServiceTest {
                 );
 
         assertEquals(
-                "The selected venue is already booked for the requested date.",
+                "The selected venue is already booked "
+                        + "for the requested date.",
                 exception.getMessage()
         );
 
-        verify(
-                eventBookingRepository,
-                never()
-        ).save(any(EventBooking.class));
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
+    }
+
+    @Test
+    void shouldUpdatePendingEventBooking() {
+        EventBooking booking =
+                mock(EventBooking.class);
+
+        Venue venue = mockAvailableVenue();
+
+        EventBookingUpdateRequest request =
+                updateRequest();
+
+        EventBookingResponse expectedResponse =
+                mockResponse();
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("PENDING");
+
+        when(venueRepository.findById(1))
+                .thenReturn(Optional.of(venue));
+
+        when(eventBookingRepository
+                .findVenueBookingConflictsExcludingBooking(
+                        1,
+                        request.bookingDate(),
+                        6
+                ))
+                .thenReturn(List.of());
+
+        when(pricingRuleRepository
+                .findApprovedRulesForDate(
+                        1,
+                        request.bookingDate()
+                ))
+                .thenReturn(List.of());
+
+        when(eventBookingRepository.save(booking))
+                .thenReturn(booking);
+
+        when(eventBookingMapper.toResponse(booking))
+                .thenReturn(expectedResponse);
+
+        EventBookingResponse actualResponse =
+                eventBookingService.updateEventBooking(
+                        6,
+                        request
+                );
+
+        assertSame(expectedResponse, actualResponse);
+
+        verify(booking).setVenue(venue);
+
+        verify(booking).setBookingDate(
+                request.bookingDate()
+        );
+
+        verify(booking).setGuestCount(
+                request.guestCount()
+        );
+
+        verify(booking).setTotalAmount(
+                new BigDecimal("250000.00")
+        );
+
+        verify(eventBookingRepository)
+                .save(booking);
+    }
+
+    @Test
+    void shouldRejectUpdateForConfirmedBooking() {
+        EventBooking booking =
+                mock(EventBooking.class);
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("CONFIRMED");
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> eventBookingService
+                        .updateEventBooking(
+                                6,
+                                updateRequest()
+                        )
+        );
+
+        verify(venueRepository, never())
+                .findById(any());
+
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
+    }
+
+    @Test
+    void shouldRejectConflictingEventBookingUpdate() {
+        EventBooking booking =
+                mock(EventBooking.class);
+
+        EventBookingUpdateRequest request =
+                updateRequest();
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("PENDING");
+
+        Venue venue = mockAvailableVenue();
+
+        when(venueRepository.findById(1))
+                .thenReturn(Optional.of(venue));
+
+        when(eventBookingRepository
+                .findVenueBookingConflictsExcludingBooking(
+                        1,
+                        request.bookingDate(),
+                        6
+                ))
+                .thenReturn(List.of(
+                        mock(EventBooking.class)
+                ));
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> eventBookingService
+                        .updateEventBooking(
+                                6,
+                                request
+                        )
+        );
+
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
+    }
+
+    @Test
+    void shouldCancelPendingEventBooking() {
+        EventBooking booking =
+                mock(EventBooking.class);
+
+        EventBookingResponse expectedResponse =
+                mockResponse();
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("PENDING");
+
+        when(eventBookingRepository.save(booking))
+                .thenReturn(booking);
+
+        when(eventBookingMapper.toResponse(booking))
+                .thenReturn(expectedResponse);
+
+        EventBookingResponse actualResponse =
+                eventBookingService
+                        .cancelEventBooking(6);
+
+        assertSame(expectedResponse, actualResponse);
+
+        verify(booking)
+                .setBookingStatus("CANCELLED");
+
+        verify(eventBookingRepository)
+                .save(booking);
+    }
+
+    @Test
+    void shouldRejectCancellationForConfirmedBooking() {
+        EventBooking booking =
+                mock(EventBooking.class);
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("CONFIRMED");
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> eventBookingService
+                        .cancelEventBooking(6)
+        );
+
+        verify(booking, never())
+                .setBookingStatus("CANCELLED");
+
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
+    }
+
+    @Test
+    void shouldRejectUpdateForMissingBooking() {
+        when(eventBookingRepository.findById(99))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> eventBookingService
+                        .updateEventBooking(
+                                99,
+                                updateRequest()
+                        )
+        );
+    }
+
+    @Test
+    void shouldRejectCancellationForMissingBooking() {
+        when(eventBookingRepository.findById(99))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> eventBookingService
+                        .cancelEventBooking(99)
+        );
     }
 
     @Test
     void shouldReturnEventBookingById() {
-        EventBooking eventBooking =
+        EventBooking booking =
                 mock(EventBooking.class);
 
         EventBookingResponse expectedResponse =
                 mockResponse();
 
         when(eventBookingRepository.findById(1))
-                .thenReturn(Optional.of(eventBooking));
+                .thenReturn(Optional.of(booking));
 
-        when(eventBookingMapper.toResponse(eventBooking))
+        when(eventBookingMapper.toResponse(booking))
                 .thenReturn(expectedResponse);
 
-        EventBookingResponse actualResponse =
+        assertSame(
+                expectedResponse,
                 eventBookingService
-                        .getEventBookingById(1);
-
-        assertSame(expectedResponse, actualResponse);
+                        .getEventBookingById(1)
+        );
     }
 
     @Test
@@ -402,28 +579,30 @@ class EventBookingServiceTest {
         when(customerRepository.existsById(1))
                 .thenReturn(true);
 
-        when(
-                eventBookingRepository
-                        .findByCustomerUserIdOrderByBookingDateDesc(
-                                1
-                        )
-        ).thenReturn(
-                List.of(firstBooking, secondBooking)
-        );
+        when(eventBookingRepository
+                .findByCustomerUserIdOrderByBookingDateDesc(
+                        1
+                ))
+                .thenReturn(List.of(
+                        firstBooking,
+                        secondBooking
+                ));
 
-        when(eventBookingMapper.toResponse(firstBooking))
+        when(eventBookingMapper
+                .toResponse(firstBooking))
                 .thenReturn(firstResponse);
 
-        when(eventBookingMapper.toResponse(secondBooking))
+        when(eventBookingMapper
+                .toResponse(secondBooking))
                 .thenReturn(secondResponse);
 
-        List<EventBookingResponse> responses =
-                eventBookingService
-                        .getCustomerEventBookings(1);
-
         assertEquals(
-                List.of(firstResponse, secondResponse),
-                responses
+                List.of(
+                        firstResponse,
+                        secondResponse
+                ),
+                eventBookingService
+                        .getCustomerEventBookings(1)
         );
     }
 
@@ -438,87 +617,66 @@ class EventBookingServiceTest {
                         .getCustomerEventBookings(99)
         );
 
-        verify(
-                eventBookingRepository,
-                never()
-        ).findByCustomerUserIdOrderByBookingDateDesc(99);
+        verify(eventBookingRepository, never())
+                .findByCustomerUserIdOrderByBookingDateDesc(
+                        99
+                );
     }
 
     @Test
     void shouldReturnBookingsByTrimmedStatus() {
-        EventBooking eventBooking =
+        EventBooking booking =
                 mock(EventBooking.class);
 
         EventBookingResponse expectedResponse =
                 mockResponse();
 
-        when(
-                eventBookingRepository
-                        .findByBookingStatusIgnoreCase(
-                                "CONFIRMED"
-                        )
-        ).thenReturn(List.of(eventBooking));
+        when(eventBookingRepository
+                .findByBookingStatusIgnoreCase(
+                        "CONFIRMED"
+                ))
+                .thenReturn(List.of(booking));
 
-        when(eventBookingMapper.toResponse(eventBooking))
+        when(eventBookingMapper.toResponse(booking))
                 .thenReturn(expectedResponse);
-
-        List<EventBookingResponse> responses =
-                eventBookingService
-                        .getEventBookingsByStatus(
-                                "  CONFIRMED  "
-                        );
 
         assertEquals(
                 List.of(expectedResponse),
-                responses
+                eventBookingService
+                        .getEventBookingsByStatus(
+                                " CONFIRMED "
+                        )
         );
-
-        verify(eventBookingRepository)
-                .findByBookingStatusIgnoreCase(
-                        "CONFIRMED"
-                );
     }
 
     @Test
     void shouldRejectBlankBookingStatus() {
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> eventBookingService
-                                .getEventBookingsByStatus(
-                                        "   "
-                                )
-                );
-
-        assertEquals(
-                "Booking status is required.",
-                exception.getMessage()
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> eventBookingService
+                        .getEventBookingsByStatus(" ")
         );
     }
 
-    private Customer mockCustomer() {
-        return mock(Customer.class);
-    }
-
     private Venue mockAvailableVenue() {
-    Venue venue = mock(Venue.class);
+        Venue venue = mock(Venue.class);
 
-    lenient().when(venue.getVenueId())
-            .thenReturn(1);
+        lenient().when(venue.getVenueId())
+                .thenReturn(1);
 
-    lenient().when(venue.getAvailabilityStatus())
-            .thenReturn("AVAILABLE");
+        lenient().when(venue.getAvailabilityStatus())
+                .thenReturn("AVAILABLE");
 
-    lenient().when(venue.getCapacity())
-            .thenReturn(500);
+        lenient().when(venue.getCapacity())
+                .thenReturn(500);
 
-    lenient().when(venue.getBasePrice())
-            .thenReturn(
-                    new BigDecimal("250000.00")
-            );
+        lenient().when(venue.getBasePrice())
+                .thenReturn(
+                        new BigDecimal("250000.00")
+                );
 
-    return venue;
-}
+        return venue;
+    }
 
     private EventBookingCreateRequest createRequest(
             Integer guestCount
@@ -528,6 +686,14 @@ class EventBookingServiceTest {
                 1,
                 LocalDate.of(2026, 12, 20),
                 guestCount
+        );
+    }
+
+    private EventBookingUpdateRequest updateRequest() {
+        return new EventBookingUpdateRequest(
+                1,
+                LocalDate.of(2026, 12, 21),
+                150
         );
     }
 

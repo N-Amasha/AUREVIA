@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,7 +43,9 @@ class EventControllerTest {
 
         mockMvc.perform(
                         post("/api/events")
-                                .contentType(MediaType.APPLICATION_JSON)
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
                                 .content("""
                                         {
                                           "eventBookingId": 6,
@@ -58,16 +61,21 @@ class EventControllerTest {
                                         """)
                 )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.eventId").value(6))
+                .andExpect(jsonPath("$.eventId")
+                        .value(6))
                 .andExpect(jsonPath("$.eventStatus")
                         .value("PLANNED"));
     }
 
     @Test
-    void shouldRejectInvalidEventRequest() throws Exception {
+    void shouldRejectInvalidEventRequest()
+            throws Exception {
+
         mockMvc.perform(
                         post("/api/events")
-                                .contentType(MediaType.APPLICATION_JSON)
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
                                 .content("""
                                         {
                                           "eventName": "",
@@ -83,54 +91,155 @@ class EventControllerTest {
     }
 
     @Test
+    void shouldCreateEventFromBookingForAuthenticatedCoordinator()
+            throws Exception {
+
+        when(eventService.createEventForCoordinator(
+                any(),
+                eq("coordinator1@aurevia.test")
+        )).thenReturn(response());
+
+        mockMvc.perform(
+                        post("/api/events/from-booking")
+                                .principal(
+                                        () -> "coordinator1@aurevia.test"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "eventBookingId": 6,
+                                          "eventName": "Test Corporate Event",
+                                          "eventType": "CORPORATE",
+                                          "startTime": "09:00:00",
+                                          "endTime": "17:00:00",
+                                          "budget": 100000.00
+                                        }
+                                        """)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.eventId")
+                        .value(6))
+                .andExpect(jsonPath("$.eventBookingId")
+                        .value(6))
+                .andExpect(jsonPath("$.coordinatorId")
+                        .value(6))
+                .andExpect(jsonPath("$.eventName")
+                        .value("Test Corporate Event"))
+                .andExpect(jsonPath("$.eventStatus")
+                        .value("PLANNED"));
+    }
+
+    @Test
+    void shouldRejectInvalidCoordinatorEventRequest()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/events/from-booking")
+                                .principal(
+                                        () -> "coordinator1@aurevia.test"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "eventBookingId": null,
+                                          "eventName": "",
+                                          "eventType": "",
+                                          "startTime": null,
+                                          "endTime": null,
+                                          "budget": -1
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("Validation Failed"))
+                .andExpect(jsonPath(
+                        "$.validationErrors.eventBookingId"
+                ).value("Event booking ID is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.eventName"
+                ).value("Event name is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.eventType"
+                ).value("Event type is required."));
+    }
+
+    @Test
     void shouldReturnEventById() throws Exception {
         when(eventService.getEventById(6))
                 .thenReturn(response());
 
         mockMvc.perform(get("/api/events/6"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.eventId").value(6))
+                .andExpect(jsonPath("$.eventId")
+                        .value(6))
                 .andExpect(jsonPath("$.eventName")
                         .value("Test Corporate Event"));
     }
 
     @Test
-    void shouldReturnEventsByCoordinator() throws Exception {
+    void shouldReturnEventsByCoordinator()
+            throws Exception {
+
         when(eventService.getEventsByCoordinator(6))
                 .thenReturn(List.of(response()));
 
-        mockMvc.perform(get("/api/events/coordinators/6"))
+        mockMvc.perform(
+                        get("/api/events/coordinators/6")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].coordinatorId")
                         .value(6));
     }
 
     @Test
-    void shouldReturnEventsByStatus() throws Exception {
+    void shouldReturnEventsByStatus()
+            throws Exception {
+
         when(eventService.getEventsByStatus("PLANNED"))
                 .thenReturn(List.of(response()));
 
-        mockMvc.perform(get("/api/events/statuses/PLANNED"))
+        mockMvc.perform(
+                        get("/api/events/statuses/PLANNED")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].eventStatus")
                         .value("PLANNED"));
     }
 
     @Test
-    void shouldReturnEventsBetweenDates() throws Exception {
-        LocalDate start = LocalDate.of(2026, 12, 1);
-        LocalDate end = LocalDate.of(2026, 12, 31);
+    void shouldReturnEventsBetweenDates()
+            throws Exception {
 
-        when(eventService.getEventsBetweenDates(start, end))
-                .thenReturn(List.of(response()));
+        LocalDate start =
+                LocalDate.of(2026, 12, 1);
+
+        LocalDate end =
+                LocalDate.of(2026, 12, 31);
+
+        when(eventService.getEventsBetweenDates(
+                start,
+                end
+        )).thenReturn(List.of(response()));
 
         mockMvc.perform(
                         get("/api/events/date-range")
-                                .param("startDate", "2026-12-01")
-                                .param("endDate", "2026-12-31")
+                                .param(
+                                        "startDate",
+                                        "2026-12-01"
+                                )
+                                .param(
+                                        "endDate",
+                                        "2026-12-31"
+                                )
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].eventId").value(6));
+                .andExpect(jsonPath("$[0].eventId")
+                        .value(6));
     }
 
     private EventResponse response() {

@@ -29,4 +29,18 @@ public interface EventBookingRepository
             @Param("venueId") Integer venueId,
             @Param("bookingDate") LocalDate bookingDate
     );
+
+    @Query("""
+            SELECT eb
+            FROM EventBooking eb
+            WHERE eb.venue.venueId = :venueId
+              AND eb.bookingDate = :bookingDate
+              AND eb.eventBookingId <> :eventBookingId
+              AND UPPER(eb.bookingStatus) <> 'CANCELLED'
+            """)
+    List<EventBooking> findVenueBookingConflictsExcludingBooking(
+            @Param("venueId") Integer venueId,
+            @Param("bookingDate") LocalDate bookingDate,
+            @Param("eventBookingId") Integer eventBookingId
+    );
 }

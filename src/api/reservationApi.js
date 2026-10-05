@@ -42,6 +42,26 @@ export async function createEventBooking(
   return response.data;
 }
 
+export async function updateEventBooking(
+  eventBookingId,
+  bookingData,
+) {
+  const response = await axiosClient.put(
+    `/api/event-bookings/${eventBookingId}`,
+    bookingData,
+  );
+
+  return response.data;
+}
+
+export async function cancelEventBooking(eventBookingId) {
+  const response = await axiosClient.delete(
+    `/api/event-bookings/${eventBookingId}`,
+  );
+
+  return response.data;
+}
+
 export async function getEventBookingById(
   eventBookingId,
 ) {

@@ -12,6 +12,7 @@ import com.aurevia.reservation.repository.EventBookingRepository;
 import com.aurevia.user.entity.EventCoordinator;
 import com.aurevia.user.repository.EventCoordinatorRepository;
 import org.springframework.stereotype.Service;
+import com.aurevia.event.dto.CoordinatorEventCreateRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -84,6 +85,83 @@ public class EventService {
                 eventRepository.save(event)
         );
     }
+
+
+    @Transactional
+    public EventResponse createEventForCoordinator(
+            CoordinatorEventCreateRequest request,
+            String coordinatorEmail
+    ) {
+        if (
+                coordinatorEmail == null
+                        || coordinatorEmail.isBlank()
+        ) {
+            throw new IllegalArgumentException(
+                    "Authenticated coordinator email is required."
+            );
+        }
+
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new BusinessRuleException(
+                    "Event end time must be later than start time."
+            );
+        }
+
+        validateUnusedBooking(request.eventBookingId());
+
+        EventBooking eventBooking =
+                eventBookingRepository
+                        .findById(request.eventBookingId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Event booking",
+                                        "eventBookingId",
+                                        request.eventBookingId()
+                                )
+                        );
+
+        if (!"PENDING".equalsIgnoreCase(
+                eventBooking.getBookingStatus()
+        )) {
+            throw new BusinessRuleException(
+                    "Only pending event bookings can be accepted."
+            );
+        }
+
+        EventCoordinator coordinator =
+                coordinatorRepository
+                        .findByEmployeeUserAccountEmailIgnoreCase(
+                                coordinatorEmail
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Event coordinator",
+                                        "email",
+                                        coordinatorEmail
+                                )
+                        );
+
+        Event event = new Event(
+                eventBooking,
+                coordinator,
+                request.eventName().trim(),
+                request.eventType().trim(),
+                eventBooking.getBookingDate(),
+                request.startTime(),
+                request.endTime(),
+                request.budget(),
+                eventBooking.getGuestCount(),
+                "PLANNED"
+        );
+
+        Event savedEvent = eventRepository.save(event);
+
+        eventBooking.setBookingStatus("CONFIRMED");
+        eventBookingRepository.save(eventBooking);
+
+        return eventMapper.toResponse(savedEvent);
+    }
+
 
     public EventResponse getEventById(Integer eventId) {
         return eventMapper.toResponse(findEvent(eventId));

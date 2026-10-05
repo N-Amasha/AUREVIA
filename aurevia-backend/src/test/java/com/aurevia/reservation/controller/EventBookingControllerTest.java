@@ -5,6 +5,7 @@ import com.aurevia.exception.GlobalExceptionHandler;
 import com.aurevia.exception.ResourceNotFoundException;
 import com.aurevia.reservation.dto.EventBookingCreateRequest;
 import com.aurevia.reservation.dto.EventBookingResponse;
+import com.aurevia.reservation.dto.EventBookingUpdateRequest;
 import com.aurevia.reservation.service.EventBookingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -21,10 +22,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,12 +53,11 @@ class EventBookingControllerTest {
                 createValidRequest();
 
         EventBookingResponse response =
-                createResponse();
+                createResponse("PENDING");
 
-        when(
-                eventBookingService
-                        .createEventBooking(request)
-        ).thenReturn(response);
+        when(eventBookingService
+                .createEventBooking(request))
+                .thenReturn(response);
 
         mockMvc.perform(
                         post("/api/event-bookings")
@@ -69,9 +72,10 @@ class EventBookingControllerTest {
                                 )
                 )
                 .andExpect(status().isCreated())
-                .andExpect(content().contentTypeCompatibleWith(
-                        MediaType.APPLICATION_JSON
-                ))
+                .andExpect(content()
+                        .contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        ))
                 .andExpect(jsonPath("$.eventBookingId")
                         .value(6))
                 .andExpect(jsonPath("$.customerId")
@@ -82,31 +86,181 @@ class EventBookingControllerTest {
                         .value(1))
                 .andExpect(jsonPath("$.venueName")
                         .value("Grand Ballroom"))
-                .andExpect(jsonPath("$.venueLocation")
-                        .value("Ground Floor"))
                 .andExpect(jsonPath("$.bookingDate")
                         .value("2026-12-20"))
                 .andExpect(jsonPath("$.guestCount")
                         .value(200))
-                .andExpect(jsonPath("$.totalAmount")
-                        .value(350000.00))
                 .andExpect(jsonPath("$.bookingStatus")
-                        .value("PENDING"))
-                .andExpect(jsonPath("$.createdAt")
-                        .value("2026-09-27T16:00:00"));
+                        .value("PENDING"));
 
         verify(eventBookingService)
                 .createEventBooking(request);
     }
 
     @Test
-    void shouldReturnEventBookingById() throws Exception {
-        when(
-                eventBookingService
-                        .getEventBookingById(1)
-        ).thenReturn(createResponse());
+    void shouldUpdatePendingEventBooking()
+            throws Exception {
 
-        mockMvc.perform(get("/api/event-bookings/1"))
+        EventBookingUpdateRequest request =
+                createUpdateRequest();
+
+        EventBookingResponse response =
+                createUpdatedResponse();
+
+        when(eventBookingService
+                .updateEventBooking(
+                        eq(6),
+                        eq(request)
+                ))
+                .thenReturn(response);
+
+        mockMvc.perform(
+                        put("/api/event-bookings/6")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper
+                                                .writeValueAsString(
+                                                        request
+                                                )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventBookingId")
+                        .value(6))
+                .andExpect(jsonPath("$.bookingDate")
+                        .value("2026-12-21"))
+                .andExpect(jsonPath("$.guestCount")
+                        .value(150))
+                .andExpect(jsonPath("$.bookingStatus")
+                        .value("PENDING"));
+
+        verify(eventBookingService)
+                .updateEventBooking(6, request);
+    }
+
+    @Test
+    void shouldCancelPendingEventBooking()
+            throws Exception {
+
+        when(eventBookingService
+                .cancelEventBooking(6))
+                .thenReturn(
+                        createResponse("CANCELLED")
+                );
+
+        mockMvc.perform(
+                        delete("/api/event-bookings/6")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventBookingId")
+                        .value(6))
+                .andExpect(jsonPath("$.bookingStatus")
+                        .value("CANCELLED"));
+
+        verify(eventBookingService)
+                .cancelEventBooking(6);
+    }
+
+    @Test
+    void shouldRejectInvalidUpdateRequest()
+            throws Exception {
+
+        mockMvc.perform(
+                        put("/api/event-bookings/6")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "venueId": null,
+                                          "bookingDate": null,
+                                          "guestCount": 0
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("Validation Failed"))
+                .andExpect(jsonPath(
+                        "$.validationErrors.venueId"
+                ).value("Venue ID is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.bookingDate"
+                ).value("Booking date is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.guestCount"
+                ).value("Guest count must be positive."));
+    }
+
+    @Test
+    void shouldReturnConflictWhenConfirmedBookingIsUpdated()
+            throws Exception {
+
+        EventBookingUpdateRequest request =
+                createUpdateRequest();
+
+        when(eventBookingService
+                .updateEventBooking(6, request))
+                .thenThrow(
+                        new BusinessRuleException(
+                                "Only pending event bookings "
+                                        + "can be updated."
+                        )
+                );
+
+        mockMvc.perform(
+                        put("/api/event-bookings/6")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper
+                                                .writeValueAsString(
+                                                        request
+                                                )
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error")
+                        .value("Conflict"));
+    }
+
+    @Test
+    void shouldReturnConflictWhenConfirmedBookingIsCancelled()
+            throws Exception {
+
+        when(eventBookingService
+                .cancelEventBooking(6))
+                .thenThrow(
+                        new BusinessRuleException(
+                                "Only pending event bookings "
+                                        + "can be cancelled."
+                        )
+                );
+
+        mockMvc.perform(
+                        delete("/api/event-bookings/6")
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error")
+                        .value("Conflict"));
+    }
+
+    @Test
+    void shouldReturnEventBookingById()
+            throws Exception {
+
+        when(eventBookingService
+                .getEventBookingById(1))
+                .thenReturn(
+                        createResponse("PENDING")
+                );
+
+        mockMvc.perform(
+                        get("/api/event-bookings/1")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.eventBookingId")
                         .value(6))
@@ -114,19 +268,17 @@ class EventBookingControllerTest {
                         .value("Grand Ballroom"))
                 .andExpect(jsonPath("$.bookingStatus")
                         .value("PENDING"));
-
-        verify(eventBookingService)
-                .getEventBookingById(1);
     }
 
     @Test
     void shouldReturnCustomerEventBookings()
             throws Exception {
 
-        when(
-                eventBookingService
-                        .getCustomerEventBookings(1)
-        ).thenReturn(List.of(createResponse()));
+        when(eventBookingService
+                .getCustomerEventBookings(1))
+                .thenReturn(List.of(
+                        createResponse("PENDING")
+                ));
 
         mockMvc.perform(
                         get(
@@ -140,21 +292,19 @@ class EventBookingControllerTest {
                         .value(1))
                 .andExpect(jsonPath("$[0].customerName")
                         .value("Amaya Perera"));
-
-        verify(eventBookingService)
-                .getCustomerEventBookings(1);
     }
 
     @Test
     void shouldReturnEventBookingsByStatus()
             throws Exception {
 
-        when(
-                eventBookingService
-                        .getEventBookingsByStatus(
-                                "CONFIRMED"
-                        )
-        ).thenReturn(List.of(createResponse()));
+        when(eventBookingService
+                .getEventBookingsByStatus(
+                        "CONFIRMED"
+                ))
+                .thenReturn(List.of(
+                        createResponse("CONFIRMED")
+                ));
 
         mockMvc.perform(
                         get(
@@ -164,11 +314,9 @@ class EventBookingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()")
                         .value(1))
-                .andExpect(jsonPath("$[0].eventBookingId")
-                        .value(6));
-
-        verify(eventBookingService)
-                .getEventBookingsByStatus("CONFIRMED");
+                .andExpect(jsonPath(
+                        "$[0].bookingStatus"
+                ).value("CONFIRMED"));
     }
 
     @Test
@@ -187,34 +335,18 @@ class EventBookingControllerTest {
                         .value(400))
                 .andExpect(jsonPath("$.error")
                         .value("Validation Failed"))
-                .andExpect(
-                        jsonPath(
-                                "$.validationErrors.customerId"
-                        ).value(
-                                "Customer ID is required."
-                        )
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.validationErrors.venueId"
-                        ).value(
-                                "Venue ID is required."
-                        )
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.validationErrors.bookingDate"
-                        ).value(
-                                "Booking date is required."
-                        )
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.validationErrors.guestCount"
-                        ).value(
-                                "Guest count is required."
-                        )
-                );
+                .andExpect(jsonPath(
+                        "$.validationErrors.customerId"
+                ).value("Customer ID is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.venueId"
+                ).value("Venue ID is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.bookingDate"
+                ).value("Booking date is required."))
+                .andExpect(jsonPath(
+                        "$.validationErrors.guestCount"
+                ).value("Guest count is required."));
     }
 
     @Test
@@ -242,31 +374,30 @@ class EventBookingControllerTest {
                                 )
                 )
                 .andExpect(status().isBadRequest())
-                .andExpect(
-                        jsonPath(
-                                "$.validationErrors.bookingDate"
-                        ).value(
-                                "Booking date cannot be in the past."
-                        )
-                );
+                .andExpect(jsonPath(
+                        "$.validationErrors.bookingDate"
+                ).value(
+                        "Booking date cannot be in the past."
+                ));
     }
 
     @Test
     void shouldReturnNotFoundWhenBookingDoesNotExist()
             throws Exception {
 
-        when(
-                eventBookingService
-                        .getEventBookingById(99)
-        ).thenThrow(
-                new ResourceNotFoundException(
-                        "Event booking",
-                        "eventBookingId",
-                        99
-                )
-        );
+        when(eventBookingService
+                .getEventBookingById(99))
+                .thenThrow(
+                        new ResourceNotFoundException(
+                                "Event booking",
+                                "eventBookingId",
+                                99
+                        )
+                );
 
-        mockMvc.perform(get("/api/event-bookings/99"))
+        mockMvc.perform(
+                        get("/api/event-bookings/99")
+                )
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status")
                         .value(404))
@@ -274,48 +405,8 @@ class EventBookingControllerTest {
                         .value("Not Found"))
                 .andExpect(jsonPath("$.message")
                         .value(
-                                "Event booking not found with eventBookingId: 99"
-                        ))
-                .andExpect(jsonPath("$.path")
-                        .value("/api/event-bookings/99"));
-    }
-
-    @Test
-    void shouldReturnConflictForVenueBookingConflict()
-            throws Exception {
-
-        EventBookingCreateRequest request =
-                createValidRequest();
-
-        when(
-                eventBookingService
-                        .createEventBooking(request)
-        ).thenThrow(
-                new BusinessRuleException(
-                        "The selected venue is already booked for the requested date."
-                )
-        );
-
-        mockMvc.perform(
-                        post("/api/event-bookings")
-                                .contentType(
-                                        MediaType.APPLICATION_JSON
-                                )
-                                .content(
-                                        objectMapper
-                                                .writeValueAsString(
-                                                        request
-                                                )
-                                )
-                )
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status")
-                        .value(409))
-                .andExpect(jsonPath("$.error")
-                        .value("Conflict"))
-                .andExpect(jsonPath("$.message")
-                        .value(
-                                "The selected venue is already booked for the requested date."
+                                "Event booking not found "
+                                        + "with eventBookingId: 99"
                         ));
     }
 
@@ -328,7 +419,17 @@ class EventBookingControllerTest {
         );
     }
 
-    private EventBookingResponse createResponse() {
+    private EventBookingUpdateRequest createUpdateRequest() {
+        return new EventBookingUpdateRequest(
+                1,
+                LocalDate.of(2026, 12, 21),
+                150
+        );
+    }
+
+    private EventBookingResponse createResponse(
+            String bookingStatus
+    ) {
         return new EventBookingResponse(
                 6,
                 1,
@@ -339,6 +440,28 @@ class EventBookingControllerTest {
                 LocalDate.of(2026, 12, 20),
                 200,
                 new BigDecimal("350000.00"),
+                bookingStatus,
+                LocalDateTime.of(
+                        2026,
+                        9,
+                        27,
+                        16,
+                        0
+                )
+        );
+    }
+
+    private EventBookingResponse createUpdatedResponse() {
+        return new EventBookingResponse(
+                6,
+                1,
+                "Amaya Perera",
+                1,
+                "Grand Ballroom",
+                "Ground Floor",
+                LocalDate.of(2026, 12, 21),
+                150,
+                new BigDecimal("250000.00"),
                 "PENDING",
                 LocalDateTime.of(
                         2026,

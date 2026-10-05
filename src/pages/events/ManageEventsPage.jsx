@@ -1,16 +1,148 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Info,
   Search,
 } from "lucide-react";
 
+import { getEventsByStatus } from "../../api/eventApi";
+
+const EVENT_STATUSES = [
+  "PLANNED",
+  "CONFIRMED",
+  "COMPLETED",
+];
+
 export default function ManageEventsPage() {
+  const [events, setEvents] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState("ALL");
+  const [dateFilter, setDateFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadEvents() {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        const eventGroups = await Promise.all(
+          EVENT_STATUSES.map((status) =>
+            getEventsByStatus(status),
+          ),
+        );
+
+        if (!active) {
+          return;
+        }
+
+        const uniqueEvents = Array.from(
+          new Map(
+            eventGroups
+              .flat()
+              .map((event) => [event.eventId, event]),
+          ).values(),
+        ).sort(
+          (firstEvent, secondEvent) =>
+            new Date(firstEvent.eventDate) -
+            new Date(secondEvent.eventDate),
+        );
+
+        setEvents(uniqueEvents);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setLoadError(
+          error.response?.data?.message ??
+            "Unable to load event records.",
+        );
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadEvents();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const summary = useMemo(
+    () => ({
+      planned: events.filter(
+        (event) =>
+          event.eventStatus?.toUpperCase() ===
+          "PLANNED",
+      ).length,
+      confirmed: events.filter(
+        (event) =>
+          event.eventStatus?.toUpperCase() ===
+          "CONFIRMED",
+      ).length,
+      completed: events.filter(
+        (event) =>
+          event.eventStatus?.toUpperCase() ===
+          "COMPLETED",
+      ).length,
+    }),
+    [events],
+  );
+
+  const filteredEvents = useMemo(() => {
+    const normalizedSearch =
+      searchTerm.trim().toLowerCase();
+
+    return events.filter((event) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        event.eventName
+          ?.toLowerCase()
+          .includes(normalizedSearch) ||
+        event.eventType
+          ?.toLowerCase()
+          .includes(normalizedSearch) ||
+        event.coordinatorName
+          ?.toLowerCase()
+          .includes(normalizedSearch) ||
+        String(event.eventId).includes(
+          normalizedSearch,
+        );
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        event.eventStatus?.toUpperCase() ===
+          statusFilter;
+
+      const matchesDate =
+        !dateFilter ||
+        event.eventDate === dateFilter;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesDate
+      );
+    });
+  }, [
+    events,
+    searchTerm,
+    statusFilter,
+    dateFilter,
+  ]);
+
   return (
     <div>
-      {/* Header */}
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-600">
           Event Coordination
@@ -21,49 +153,46 @@ export default function ManageEventsPage() {
         </h1>
 
         <p className="mt-3 max-w-2xl leading-7 text-stone-600">
-          Review event records, monitor coordination status and open
-          individual events for further management.
+          Review event records, monitor coordination status
+          and open individual events for further management.
         </p>
       </section>
 
-      {/* Backend Notice */}
-      <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-5">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-700" />
+      {loadError && (
+        <section className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h2 className="font-semibold text-red-800">
+            Event records could not be loaded
+          </h2>
 
-          <div>
-            <h2 className="font-semibold text-primary-950">
-              Event records not connected yet
-            </h2>
+          <p className="mt-1 text-sm text-red-700">
+            {loadError}
+          </p>
+        </section>
+      )}
 
-            <p className="mt-1 text-sm leading-6 text-primary-800">
-              Event records will be retrieved from the Aurevia backend
-              after the Event Coordination service and database integration
-              are implemented.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Summary */}
       <section className="mt-8 grid gap-4 sm:grid-cols-3">
         <SummaryCard
           icon={CalendarDays}
-          label="Upcoming Events"
+          label="Planned Events"
+          value={summary.planned}
+          loading={loading}
         />
 
         <SummaryCard
           icon={Clock3}
-          label="In Coordination"
+          label="Confirmed Events"
+          value={summary.confirmed}
+          loading={loading}
         />
 
         <SummaryCard
           icon={CheckCircle2}
           label="Completed Events"
+          value={summary.completed}
+          loading={loading}
         />
       </section>
 
-      {/* Search and Filters */}
       <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-5">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px_200px]">
           <div className="relative">
@@ -71,33 +200,51 @@ export default function ManageEventsPage() {
 
             <input
               type="search"
-              disabled
-              placeholder="Search events"
-              className="w-full cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 py-3 pl-10 pr-4 text-sm text-stone-500 outline-none"
+              value={searchTerm}
+              onChange={(event) =>
+                setSearchTerm(event.target.value)
+              }
+              placeholder="Search event, type or coordinator"
+              className="w-full rounded-xl border border-stone-300 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-primary-600"
             />
           </div>
 
           <select
-            disabled
-            className="cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500 outline-none"
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(event.target.value)
+            }
+            className="rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary-600"
           >
-            <option>All Statuses</option>
+            <option value="ALL">All Statuses</option>
+            <option value="PLANNED">Planned</option>
+            <option value="CONFIRMED">
+              Confirmed
+            </option>
+            <option value="COMPLETED">
+              Completed
+            </option>
           </select>
 
           <input
             type="date"
-            disabled
-            className="cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500 outline-none"
+            value={dateFilter}
+            onChange={(event) =>
+              setDateFilter(event.target.value)
+            }
+            className="rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary-600"
           />
         </div>
 
-        <p className="mt-3 text-xs leading-5 text-stone-500">
-          Search, status and date filtering will become available when
-          event records are loaded from the backend.
+        <p className="mt-3 text-xs text-stone-500">
+          {filteredEvents.length}{" "}
+          {filteredEvents.length === 1
+            ? "event"
+            : "events"}{" "}
+          found.
         </p>
       </section>
 
-      {/* Event Records */}
       <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <div className="border-b border-stone-200 p-6">
           <h2 className="text-lg font-semibold text-primary-950">
@@ -105,69 +252,119 @@ export default function ManageEventsPage() {
           </h2>
 
           <p className="mt-1 text-sm text-stone-600">
-            Events assigned for coordination will appear here.
+            Events available for coordination and progress
+            monitoring.
           </p>
         </div>
 
-        {/* Desktop Table Header */}
         <div className="hidden grid-cols-6 gap-4 border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-stone-500 lg:grid">
           <span>Event</span>
-          <span>Customer</span>
+          <span>Type</span>
           <span>Date</span>
-          <span>Venue</span>
+          <span>Coordinator</span>
           <span>Status</span>
           <span>Action</span>
         </div>
 
-        {/* Empty State */}
-        <div className="px-6 py-14 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50">
-            <CalendarDays className="h-6 w-6 text-primary-700" />
+        {loading ? (
+          <div className="px-6 py-14 text-center text-sm text-stone-500">
+            Loading event records…
           </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="px-6 py-14 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50">
+              <CalendarDays className="h-6 w-6 text-primary-700" />
+            </div>
 
-          <h3 className="mt-5 font-semibold text-primary-950">
-            No event records available
-          </h3>
+            <h3 className="mt-5 font-semibold text-primary-950">
+              No matching events
+            </h3>
 
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-600">
-            Coordinator event records will appear here after the Event
-            Coordination backend is connected.
-          </p>
-        </div>
+            <p className="mt-2 text-sm text-stone-600">
+              No event records match the selected filters.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-stone-200">
+            {filteredEvents.map((event) => (
+              <div
+                key={event.eventId}
+                className="grid gap-4 px-6 py-5 lg:grid-cols-6 lg:items-center"
+              >
+                <div>
+                  <p className="font-semibold text-primary-950">
+                    {event.eventName}
+                  </p>
+
+                  <p className="mt-1 text-xs text-stone-500">
+                    EVT-{event.eventId}
+                  </p>
+                </div>
+
+                <p className="text-sm text-stone-700">
+                  {formatLabel(event.eventType)}
+                </p>
+
+                <p className="text-sm text-stone-700">
+                  {formatDate(event.eventDate)}
+                </p>
+
+                <p className="text-sm text-stone-700">
+                  {event.coordinatorName}
+                </p>
+
+                <div>
+                  <StatusBadge
+                    status={event.eventStatus}
+                  />
+                </div>
+
+                <Link
+                  to={`/event-coordinator/events/${event.eventId}`}
+                  className="text-sm font-semibold text-primary-700 hover:text-primary-950"
+                >
+                  View event →
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Future record behavior */}
       <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-6">
         <h2 className="font-semibold text-primary-950">
           Event management flow
         </h2>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <FlowItem number="01" text="Open event record" />
-          <FlowItem number="02" text="Review requirements" />
-          <FlowItem number="03" text="Coordinate services and timeline" />
-          <FlowItem number="04" text="Track event completion" />
-        </div>
-
-        {/* Temporary route test */}
-        <div className="mt-6 border-t border-stone-200 pt-5">
-          <p className="text-xs leading-5 text-stone-500">
-            Development route test:
-          </p>
-
-          <Link
-            to="/event-coordinator/events/demo"
-            className="mt-2 inline-block text-sm font-semibold text-primary-700 hover:text-primary-900"
-          >
-            Open event management template →
-          </Link>
+          <FlowItem
+            number="01"
+            text="Open event record"
+          />
+          <FlowItem
+            number="02"
+            text="Review requirements"
+          />
+          <FlowItem
+            number="03"
+            text="Coordinate services and timeline"
+          />
+          <FlowItem
+            number="04"
+            text="Track event completion"
+          />
         </div>
       </section>
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, label }) {
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  loading,
+}) {
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-5">
       <Icon className="h-5 w-5 text-primary-700" />
@@ -177,9 +374,34 @@ function SummaryCard({ icon: Icon, label }) {
       </p>
 
       <p className="mt-1 text-2xl font-bold text-primary-950">
-        —
+        {loading ? "…" : value}
       </p>
     </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const normalizedStatus =
+    status?.toUpperCase() ?? "UNKNOWN";
+
+  const styles = {
+    PLANNED:
+      "bg-blue-50 text-blue-700 ring-blue-200",
+    CONFIRMED:
+      "bg-amber-50 text-amber-700 ring-amber-200",
+    COMPLETED:
+      "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+        styles[normalizedStatus] ??
+        "bg-stone-100 text-stone-700 ring-stone-200"
+      }`}
+    >
+      {formatLabel(normalizedStatus)}
+    </span>
   );
 }
 
@@ -195,4 +417,32 @@ function FlowItem({ number, text }) {
       </p>
     </div>
   );
+}
+
+function formatLabel(value) {
+  if (!value) {
+    return "Not available";
+  }
+
+  return value
+    .toLowerCase()
+    .split("_")
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() +
+        word.slice(1),
+    )
+    .join(" ");
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat("en-LK", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
 }

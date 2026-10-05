@@ -1,5 +1,6 @@
 package com.aurevia.event.service;
 
+import com.aurevia.event.dto.CoordinatorEventCreateRequest;
 import com.aurevia.event.dto.EventCreateRequest;
 import com.aurevia.event.dto.EventResponse;
 import com.aurevia.event.entity.Event;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,19 +71,29 @@ class EventServiceTest {
         when(eventRepository
                 .findByEventBookingEventBookingId(6))
                 .thenReturn(Optional.empty());
+
         when(eventBookingRepository.findById(6))
                 .thenReturn(Optional.of(booking));
+
         when(coordinatorRepository.findById(6))
                 .thenReturn(Optional.of(coordinator));
+
         when(booking.getBookingDate())
                 .thenReturn(request.eventDate());
-        when(booking.getGuestCount()).thenReturn(200);
+
+        when(booking.getGuestCount())
+                .thenReturn(200);
+
         when(eventRepository.save(any(Event.class)))
                 .thenReturn(savedEvent);
+
         when(eventMapper.toResponse(savedEvent))
                 .thenReturn(response);
 
-        assertEquals(response, eventService.createEvent(request));
+        assertEquals(
+                response,
+                eventService.createEvent(request)
+        );
     }
 
     @Test
@@ -121,6 +133,7 @@ class EventServiceTest {
         when(eventRepository
                 .findByEventBookingEventBookingId(6))
                 .thenReturn(Optional.empty());
+
         when(eventBookingRepository.findById(6))
                 .thenReturn(Optional.empty());
 
@@ -137,12 +150,15 @@ class EventServiceTest {
         when(eventRepository
                 .findByEventBookingEventBookingId(6))
                 .thenReturn(Optional.empty());
+
         when(eventBookingRepository.findById(6))
                 .thenReturn(Optional.of(booking));
+
         when(coordinatorRepository.findById(6))
                 .thenReturn(Optional.of(
                         mock(EventCoordinator.class)
                 ));
+
         when(booking.getBookingDate())
                 .thenReturn(LocalDate.of(2026, 12, 21));
 
@@ -159,20 +175,196 @@ class EventServiceTest {
         when(eventRepository
                 .findByEventBookingEventBookingId(6))
                 .thenReturn(Optional.empty());
+
         when(eventBookingRepository.findById(6))
                 .thenReturn(Optional.of(booking));
+
         when(coordinatorRepository.findById(6))
                 .thenReturn(Optional.of(
                         mock(EventCoordinator.class)
                 ));
+
         when(booking.getBookingDate())
                 .thenReturn(LocalDate.of(2026, 12, 20));
-        when(booking.getGuestCount()).thenReturn(50);
+
+        when(booking.getGuestCount())
+                .thenReturn(50);
 
         assertThrows(
                 BusinessRuleException.class,
                 () -> eventService.createEvent(request())
         );
+    }
+
+    @Test
+    void shouldCreateEventFromPendingBookingForAuthenticatedCoordinator() {
+        CoordinatorEventCreateRequest request =
+                coordinatorRequest();
+
+        EventBooking booking = mock(EventBooking.class);
+        EventCoordinator coordinator =
+                mock(EventCoordinator.class);
+        Event savedEvent = mock(Event.class);
+        EventResponse expectedResponse = response();
+
+        when(eventRepository
+                .findByEventBookingEventBookingId(6))
+                .thenReturn(Optional.empty());
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("PENDING");
+
+        when(booking.getBookingDate())
+                .thenReturn(LocalDate.of(2026, 12, 20));
+
+        when(booking.getGuestCount())
+                .thenReturn(100);
+
+        when(coordinatorRepository
+                .findByEmployeeUserAccountEmailIgnoreCase(
+                        "coordinator1@aurevia.test"
+                ))
+                .thenReturn(Optional.of(coordinator));
+
+        when(eventRepository.save(any(Event.class)))
+                .thenReturn(savedEvent);
+
+        when(eventMapper.toResponse(savedEvent))
+                .thenReturn(expectedResponse);
+
+        EventResponse actualResponse =
+                eventService.createEventForCoordinator(
+                        request,
+                        "coordinator1@aurevia.test"
+                );
+
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(eventRepository)
+                .save(any(Event.class));
+
+        verify(booking)
+                .setBookingStatus("CONFIRMED");
+
+        verify(eventBookingRepository)
+                .save(booking);
+    }
+
+    @Test
+    void shouldRejectCoordinatorEventWhenBookingIsNotPending() {
+        EventBooking booking = mock(EventBooking.class);
+
+        when(eventRepository
+                .findByEventBookingEventBookingId(6))
+                .thenReturn(Optional.empty());
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("CANCELLED");
+
+        BusinessRuleException exception =
+                assertThrows(
+                        BusinessRuleException.class,
+                        () -> eventService
+                                .createEventForCoordinator(
+                                        coordinatorRequest(),
+                                        "coordinator1@aurevia.test"
+                                )
+                );
+
+        assertEquals(
+                "Only pending event bookings can be accepted.",
+                exception.getMessage()
+        );
+
+        verify(
+                coordinatorRepository,
+                never()
+        ).findByEmployeeUserAccountEmailIgnoreCase(any());
+
+        verify(eventRepository, never())
+                .save(any(Event.class));
+
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
+    }
+
+    @Test
+    void shouldRejectCoordinatorEventWhenCoordinatorDoesNotExist() {
+        EventBooking booking = mock(EventBooking.class);
+
+        when(eventRepository
+                .findByEventBookingEventBookingId(6))
+                .thenReturn(Optional.empty());
+
+        when(eventBookingRepository.findById(6))
+                .thenReturn(Optional.of(booking));
+
+        when(booking.getBookingStatus())
+                .thenReturn("PENDING");
+
+        when(coordinatorRepository
+                .findByEmployeeUserAccountEmailIgnoreCase(
+                        "missing@aurevia.test"
+                ))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> eventService.createEventForCoordinator(
+                        coordinatorRequest(),
+                        "missing@aurevia.test"
+                )
+        );
+
+        verify(eventRepository, never())
+                .save(any(Event.class));
+
+        verify(eventBookingRepository, never())
+                .save(any(EventBooking.class));
+    }
+
+    @Test
+    void shouldRejectCoordinatorEventWithoutAuthenticatedEmail() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> eventService.createEventForCoordinator(
+                        coordinatorRequest(),
+                        " "
+                )
+        );
+
+        verify(eventRepository, never())
+                .save(any(Event.class));
+    }
+
+    @Test
+    void shouldRejectCoordinatorEventWithInvalidTimeRange() {
+        CoordinatorEventCreateRequest request =
+                new CoordinatorEventCreateRequest(
+                        6,
+                        "Invalid Event",
+                        "BIRTHDAY",
+                        LocalTime.of(20, 0),
+                        LocalTime.of(18, 0),
+                        new BigDecimal("300000.00")
+                );
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> eventService.createEventForCoordinator(
+                        request,
+                        "coordinator1@aurevia.test"
+                )
+        );
+
+        verify(eventRepository, never())
+                .save(any(Event.class));
     }
 
     @Test
@@ -182,10 +374,14 @@ class EventServiceTest {
 
         when(eventRepository.findById(1))
                 .thenReturn(Optional.of(event));
+
         when(eventMapper.toResponse(event))
                 .thenReturn(response);
 
-        assertEquals(response, eventService.getEventById(1));
+        assertEquals(
+                response,
+                eventService.getEventById(1)
+        );
     }
 
     @Test
@@ -196,6 +392,7 @@ class EventServiceTest {
         when(eventRepository
                 .findByCoordinatorEmployeeIdOrderByEventDateAsc(6))
                 .thenReturn(List.of(event));
+
         when(eventMapper.toResponse(event))
                 .thenReturn(response);
 
@@ -213,6 +410,7 @@ class EventServiceTest {
         when(eventRepository
                 .findByEventStatusIgnoreCase("PLANNED"))
                 .thenReturn(List.of(event));
+
         when(eventMapper.toResponse(event))
                 .thenReturn(response);
 
@@ -224,8 +422,12 @@ class EventServiceTest {
 
     @Test
     void shouldReturnEventsBetweenDates() {
-        LocalDate start = LocalDate.of(2026, 12, 1);
-        LocalDate end = LocalDate.of(2026, 12, 31);
+        LocalDate start =
+                LocalDate.of(2026, 12, 1);
+
+        LocalDate end =
+                LocalDate.of(2026, 12, 31);
+
         Event event = mock(Event.class);
         EventResponse response = response();
 
@@ -235,6 +437,7 @@ class EventServiceTest {
                         end
                 ))
                 .thenReturn(List.of(event));
+
         when(eventMapper.toResponse(event))
                 .thenReturn(response);
 
@@ -272,6 +475,17 @@ class EventServiceTest {
                 LocalTime.of(17, 0),
                 new BigDecimal("100000.00"),
                 100
+        );
+    }
+
+    private CoordinatorEventCreateRequest coordinatorRequest() {
+        return new CoordinatorEventCreateRequest(
+                6,
+                "Test Corporate Event",
+                "CORPORATE",
+                LocalTime.of(9, 0),
+                LocalTime.of(17, 0),
+                new BigDecimal("100000.00")
         );
     }
 

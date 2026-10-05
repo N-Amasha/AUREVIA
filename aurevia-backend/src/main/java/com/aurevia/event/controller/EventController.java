@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import com.aurevia.event.dto.CoordinatorEventCreateRequest;
+import java.security.Principal;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +36,25 @@ public class EventController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(eventService.createEvent(request));
+    }
+
+    @PostMapping("/from-booking")
+    public ResponseEntity<EventResponse>
+    createEventFromBooking(
+            @Valid
+            @RequestBody
+            CoordinatorEventCreateRequest request,
+            Principal principal
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(
+                        eventService
+                                .createEventForCoordinator(
+                                        request,
+                                        principal.getName()
+                                )
+                );
     }
 
     @GetMapping("/{eventId}")

@@ -1,16 +1,212 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Info,
   ListChecks,
   Search,
 } from "lucide-react";
 
+import {
+  getEventsByStatus,
+  getTimelinesByEvent,
+  updateTimelineStatus,
+} from "../../api/eventApi";
+
+const EVENT_STATUSES = [
+  "PLANNED",
+  "CONFIRMED",
+  "COMPLETED",
+];
+
 export default function EventTimelinesPage() {
+  const [timelines, setTimelines] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [eventFilter, setEventFilter] =
+    useState("ALL");
+  const [statusFilter, setStatusFilter] =
+    useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [successMessage, setSuccessMessage] =
+    useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadTimelines() {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        const eventGroups = await Promise.all(
+          EVENT_STATUSES.map((status) =>
+            getEventsByStatus(status),
+          ),
+        );
+
+        const uniqueEvents = Array.from(
+          new Map(
+            eventGroups
+              .flat()
+              .map((event) => [event.eventId, event]),
+          ).values(),
+        );
+
+        const timelineGroups = await Promise.all(
+          uniqueEvents.map((event) =>
+            getTimelinesByEvent(event.eventId),
+          ),
+        );
+
+        if (!active) {
+          return;
+        }
+
+        const loadedTimelines = timelineGroups
+          .flat()
+          .sort(
+            (firstTimeline, secondTimeline) =>
+              new Date(firstTimeline.scheduledDate) -
+              new Date(secondTimeline.scheduledDate),
+          );
+
+        setTimelines(loadedTimelines);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setLoadError(
+          error.response?.data?.message ??
+            "Unable to load timeline records.",
+        );
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadTimelines();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const eventOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          timelines.map((timeline) => [
+            timeline.eventId,
+            timeline.eventName,
+          ]),
+        ).entries(),
+      ),
+    [timelines],
+  );
+
+  const summary = useMemo(
+    () => ({
+      total: timelines.length,
+      pending: timelines.filter(
+        (timeline) =>
+          timeline.status?.toUpperCase() ===
+          "PENDING",
+      ).length,
+      completed: timelines.filter(
+        (timeline) =>
+          timeline.status?.toUpperCase() ===
+          "COMPLETED",
+      ).length,
+    }),
+    [timelines],
+  );
+
+  const filteredTimelines = useMemo(() => {
+    const normalizedSearch =
+      searchTerm.trim().toLowerCase();
+
+    return timelines.filter((timeline) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        timeline.milestoneName
+          ?.toLowerCase()
+          .includes(normalizedSearch) ||
+        timeline.eventName
+          ?.toLowerCase()
+          .includes(normalizedSearch) ||
+        timeline.description
+          ?.toLowerCase()
+          .includes(normalizedSearch);
+
+      const matchesEvent =
+        eventFilter === "ALL" ||
+        String(timeline.eventId) === eventFilter;
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        timeline.status?.toUpperCase() ===
+          statusFilter;
+
+      return (
+        matchesSearch &&
+        matchesEvent &&
+        matchesStatus
+      );
+    });
+  }, [
+    timelines,
+    searchTerm,
+    eventFilter,
+    statusFilter,
+  ]);
+
+  async function handleStatusUpdate(
+    timelineId,
+    nextStatus,
+  ) {
+    try {
+      setUpdatingId(timelineId);
+      setLoadError("");
+      setSuccessMessage("");
+
+      const updatedTimeline =
+        await updateTimelineStatus(
+          timelineId,
+          {
+            status: nextStatus,
+          },
+        );
+
+      setTimelines((currentTimelines) =>
+        currentTimelines.map((timeline) =>
+          timeline.timelineId === timelineId
+            ? updatedTimeline
+            : timeline,
+        ),
+      );
+
+      setSuccessMessage(
+        `Timeline activity updated to ${formatLabel(
+          nextStatus,
+        )}.`,
+      );
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.message ??
+          "Unable to update the timeline status.",
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   return (
     <div>
-      {/* Header */}
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-600">
           Event Coordination
@@ -21,84 +217,111 @@ export default function EventTimelinesPage() {
         </h1>
 
         <p className="mt-3 max-w-2xl leading-7 text-stone-600">
-          Track coordination activities, milestones and progress updates
-          across Aurevia events.
+          Track coordination activities, milestones and
+          progress updates across Aurevia events.
         </p>
       </section>
 
-      {/* Backend Notice */}
-      <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-5">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-700" />
+      {loadError && (
+        <section className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-sm font-medium text-red-700">
+            {loadError}
+          </p>
+        </section>
+      )}
 
-          <div>
-            <h2 className="font-semibold text-primary-950">
-              Timeline records not connected yet
-            </h2>
+      {successMessage && (
+        <section className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <p className="text-sm font-medium text-emerald-700">
+            {successMessage}
+          </p>
+        </section>
+      )}
 
-            <p className="mt-1 text-sm leading-6 text-primary-800">
-              Timeline activities will be retrieved from the backend after
-              the Event Coordination service and database integration are
-              implemented.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Summary */}
       <section className="mt-8 grid gap-4 sm:grid-cols-3">
         <SummaryCard
           icon={ListChecks}
           label="Timeline Activities"
+          value={summary.total}
+          loading={loading}
         />
 
         <SummaryCard
           icon={Clock3}
-          label="In Progress"
+          label="Pending"
+          value={summary.pending}
+          loading={loading}
         />
 
         <SummaryCard
           icon={CheckCircle2}
           label="Completed"
+          value={summary.completed}
+          loading={loading}
         />
       </section>
 
-      {/* Search and filters */}
       <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px_200px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px_200px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
 
             <input
               type="search"
-              disabled
-              placeholder="Search timeline activities"
-              className="w-full cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 py-3 pl-10 pr-4 text-sm text-stone-500 outline-none"
+              value={searchTerm}
+              onChange={(event) =>
+                setSearchTerm(event.target.value)
+              }
+              placeholder="Search activity or event"
+              className="w-full rounded-xl border border-stone-300 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-primary-600"
             />
           </div>
 
           <select
-            disabled
-            className="cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500 outline-none"
+            value={eventFilter}
+            onChange={(event) =>
+              setEventFilter(event.target.value)
+            }
+            className="rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary-600"
           >
-            <option>All Events</option>
+            <option value="ALL">All Events</option>
+
+            {eventOptions.map(
+              ([eventId, eventName]) => (
+                <option
+                  key={eventId}
+                  value={String(eventId)}
+                >
+                  {eventName}
+                </option>
+              ),
+            )}
           </select>
 
           <select
-            disabled
-            className="cursor-not-allowed rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500 outline-none"
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(event.target.value)
+            }
+            className="rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary-600"
           >
-            <option>All Statuses</option>
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="COMPLETED">
+              Completed
+            </option>
           </select>
         </div>
 
-        <p className="mt-3 text-xs leading-5 text-stone-500">
-          Timeline search and filtering will become available when real
-          event timeline records are loaded.
+        <p className="mt-3 text-xs text-stone-500">
+          {filteredTimelines.length} timeline{" "}
+          {filteredTimelines.length === 1
+            ? "activity"
+            : "activities"}{" "}
+          found.
         </p>
       </section>
 
-      {/* Timeline Records */}
       <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <div className="border-b border-stone-200 p-6">
           <div className="flex items-start gap-3">
@@ -110,41 +333,114 @@ export default function EventTimelinesPage() {
               </h2>
 
               <p className="mt-1 text-sm text-stone-600">
-                Progress updates associated with coordinated events will
-                appear here.
+                Live timeline records retrieved from the
+                Event Coordination service.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Table headings */}
         <div className="hidden grid-cols-6 gap-4 border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-stone-500 lg:grid">
           <span>Event</span>
-          <span>Activity</span>
-          <span>Date</span>
+          <span>Milestone</span>
+          <span>Scheduled</span>
+          <span>Last Updated</span>
           <span>Status</span>
-          <span>Updated By</span>
           <span>Action</span>
         </div>
 
-        {/* Empty State */}
-        <div className="px-6 py-14 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50">
-            <CalendarDays className="h-6 w-6 text-primary-700" />
+        {loading ? (
+          <div className="px-6 py-14 text-center text-sm text-stone-500">
+            Loading timeline activities…
           </div>
+        ) : filteredTimelines.length === 0 ? (
+          <div className="px-6 py-14 text-center">
+            <CalendarDays className="mx-auto h-7 w-7 text-primary-700" />
 
-          <h3 className="mt-5 font-semibold text-primary-950">
-            No timeline activities available
-          </h3>
+            <h3 className="mt-4 font-semibold text-primary-950">
+              No matching activities
+            </h3>
+          </div>
+        ) : (
+          <div className="divide-y divide-stone-200">
+            {filteredTimelines.map((timeline) => {
+              const isCompleted =
+                timeline.status?.toUpperCase() ===
+                "COMPLETED";
 
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-600">
-            Event timeline activities will appear here after timeline
-            records are connected to the backend.
-          </p>
-        </div>
+              const nextStatus = isCompleted
+                ? "PENDING"
+                : "COMPLETED";
+
+              return (
+                <div
+                  key={timeline.timelineId}
+                  className="grid gap-4 px-6 py-5 lg:grid-cols-6 lg:items-center"
+                >
+                  <div>
+                    <p className="font-semibold text-primary-950">
+                      {timeline.eventName}
+                    </p>
+
+                    <p className="mt-1 text-xs text-stone-500">
+                      EVT-{timeline.eventId}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-stone-800">
+                      {timeline.milestoneName}
+                    </p>
+
+                    <p className="mt-1 text-xs text-stone-500">
+                      {timeline.description}
+                    </p>
+                  </div>
+
+                  <p className="text-sm text-stone-700">
+                    {formatDateTime(
+                      timeline.scheduledDate,
+                    )}
+                  </p>
+
+                  <p className="text-sm text-stone-700">
+                    {formatDateTime(
+                      timeline.updatedDate,
+                    )}
+                  </p>
+
+                  <div>
+                    <StatusBadge
+                      status={timeline.status}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={
+                      updatingId === timeline.timelineId
+                    }
+                    onClick={() =>
+                      handleStatusUpdate(
+                        timeline.timelineId,
+                        nextStatus,
+                      )
+                    }
+                    className="rounded-xl border border-primary-200 px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {updatingId === timeline.timelineId
+                      ? "Updating…"
+                      : isCompleted
+                        ? "Mark Pending"
+                        : "Mark Completed"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Explanation */}
       <section className="mt-8 rounded-2xl bg-primary-950 p-6 text-white sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold-400">
           Timeline Purpose
@@ -158,25 +454,25 @@ export default function EventTimelinesPage() {
           <TimelinePurpose
             number="01"
             title="Create"
-            text="Record a coordination activity for an event."
+            text="Record a coordination milestone for an event."
           />
 
           <TimelinePurpose
             number="02"
             title="Track"
-            text="Follow the current progress of the activity."
+            text="Follow the current progress of the milestone."
           />
 
           <TimelinePurpose
             number="03"
             title="Update"
-            text="Record changes as coordination work progresses."
+            text="Update its status as coordination work progresses."
           />
 
           <TimelinePurpose
             number="04"
             title="Complete"
-            text="Mark the activity complete when its work is finished."
+            text="Mark the milestone complete after finishing the work."
           />
         </div>
       </section>
@@ -184,7 +480,12 @@ export default function EventTimelinesPage() {
   );
 }
 
-function SummaryCard({ icon: Icon, label }) {
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  loading,
+}) {
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-5">
       <Icon className="h-5 w-5 text-primary-700" />
@@ -194,13 +495,40 @@ function SummaryCard({ icon: Icon, label }) {
       </p>
 
       <p className="mt-1 text-2xl font-bold text-primary-950">
-        —
+        {loading ? "…" : value}
       </p>
     </div>
   );
 }
 
-function TimelinePurpose({ number, title, text }) {
+function StatusBadge({ status }) {
+  const normalizedStatus =
+    status?.toUpperCase() ?? "UNKNOWN";
+
+  const styles = {
+    PENDING:
+      "bg-amber-50 text-amber-700 ring-amber-200",
+    COMPLETED:
+      "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+        styles[normalizedStatus] ??
+        "bg-stone-100 text-stone-700 ring-stone-200"
+      }`}
+    >
+      {formatLabel(normalizedStatus)}
+    </span>
+  );
+}
+
+function TimelinePurpose({
+  number,
+  title,
+  text,
+}) {
   return (
     <div>
       <p className="text-sm font-bold text-gold-400">
@@ -216,4 +544,34 @@ function TimelinePurpose({ number, title, text }) {
       </p>
     </div>
   );
+}
+
+function formatLabel(value) {
+  if (!value) {
+    return "Not available";
+  }
+
+  return value
+    .toLowerCase()
+    .split("_")
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() +
+        word.slice(1),
+    )
+    .join(" ");
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat("en-LK", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
