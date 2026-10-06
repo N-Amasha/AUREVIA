@@ -21,6 +21,10 @@ public interface ReservationRepository
             String reservationStatus
     );
 
+    boolean existsByRestaurantTableTableId(
+            Integer tableId
+    );
+
     @Query("""
             SELECT r
             FROM Reservation r

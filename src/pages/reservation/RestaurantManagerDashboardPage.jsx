@@ -1,47 +1,168 @@
+/* oxlint-disable react/set-state-in-effect */
+
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarCheck,
-  Info,
+  CircleAlert,
   MapPin,
   Tags,
   TableProperties,
 } from "lucide-react";
+import {
+  getAllEventBookings,
+  getAllRestaurantTables,
+  getAllTableReservations,
+  getAllVenues,
+} from "../../api/reservationApi";
+import { getAllPricingRules } from "../../api/pricingApi";
 
 export default function RestaurantManagerDashboardPage() {
+  const [summary, setSummary] = useState({
+    reservations: 0,
+    tables: 0,
+    venues: 0,
+    pricingRules: 0,
+    pendingReservations: 0,
+    pendingPricingRules: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const actions = [
     {
       title: "Manage Reservations",
       description:
-        "Review table and venue reservation records and their current status.",
+        "Review table reservations and venue bookings with their current statuses.",
       icon: CalendarCheck,
       path: "/restaurant-manager/reservations",
+      value: summary.reservations,
+      detail: `${summary.pendingReservations} pending requests`,
     },
     {
       title: "Manage Tables",
       description:
-        "Review restaurant tables, capacity and future availability information.",
+        "Manage restaurant tables, seating capacity and operational status.",
       icon: TableProperties,
       path: "/restaurant-manager/tables",
+      value: summary.tables,
+      detail: "Database table records",
     },
     {
       title: "Manage Venues",
       description:
-        "Review event venues, capacity and future booking availability.",
+        "Manage event venues, capacities, prices, features and availability.",
       icon: MapPin,
       path: "/restaurant-manager/venues",
+      value: summary.venues,
+      detail: "Database venue records",
     },
     {
       title: "Pricing Rules",
       description:
-        "Review future pricing rules used when reservation prices are calculated.",
+        "Manage venue prices, surcharges, effective dates and approval status.",
       icon: Tags,
       path: "/restaurant-manager/pricing",
+      value: summary.pricingRules,
+      detail: `${summary.pendingPricingRules} pending approval`,
     },
   ];
 
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const [
+          tableReservations,
+          eventBookings,
+          tables,
+          venues,
+          pricingRules,
+        ] = await Promise.all([
+          getAllTableReservations(),
+          getAllEventBookings(),
+          getAllRestaurantTables(),
+          getAllVenues(),
+          getAllPricingRules(),
+        ]);
+
+        const safeTableReservations = Array.isArray(
+          tableReservations,
+        )
+          ? tableReservations
+          : [];
+
+        const safeEventBookings = Array.isArray(
+          eventBookings,
+        )
+          ? eventBookings
+          : [];
+
+        const safeTables = Array.isArray(tables)
+          ? tables
+          : [];
+
+        const safeVenues = Array.isArray(venues)
+          ? venues
+          : [];
+
+        const safePricingRules = Array.isArray(
+          pricingRules,
+        )
+          ? pricingRules
+          : [];
+
+        const pendingTableReservations =
+          safeTableReservations.filter(
+            (reservation) =>
+              reservation.reservationStatus ===
+              "PENDING",
+          ).length;
+
+        const pendingEventBookings =
+          safeEventBookings.filter(
+            (booking) =>
+              booking.bookingStatus === "PENDING",
+          ).length;
+
+        const pendingPricingRules =
+          safePricingRules.filter(
+            (rule) =>
+              rule.approvalStatus === "PENDING",
+          ).length;
+
+        setSummary({
+          reservations:
+            safeTableReservations.length +
+            safeEventBookings.length,
+          tables: safeTables.length,
+          venues: safeVenues.length,
+          pricingRules: safePricingRules.length,
+          pendingReservations:
+            pendingTableReservations +
+            pendingEventBookings,
+          pendingPricingRules,
+        });
+      } catch (loadError) {
+        setError(
+          getErrorMessage(
+            loadError,
+            "Unable to load restaurant manager dashboard.",
+          ),
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
+
   return (
     <div>
-      {/* Header */}
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-600">
           Reservation Operations
@@ -52,54 +173,78 @@ export default function RestaurantManagerDashboardPage() {
         </h1>
 
         <p className="mt-3 max-w-3xl leading-7 text-stone-600">
-          Monitor table and venue reservation operations and manage the
-          resources required for customer bookings.
+          Monitor reservation activity and manage
+          tables, venues and pricing rules from one
+          database-connected workspace.
         </p>
       </section>
 
-      {/* Backend Notice */}
-      <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-5">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-700" />
+      {error && (
+        <section className="mt-8 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800">
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
 
           <div>
-            <h2 className="font-semibold text-primary-950">
-              Reservation backend not connected yet
+            <h2 className="font-semibold">
+              Dashboard data could not be loaded
             </h2>
 
-            <p className="mt-1 text-sm leading-6 text-primary-800">
-              Reservation records, table and venue availability, and pricing
-              rules will be loaded from the Spring Boot backend after database
-              integration. The current workspace is frontend only.
+            <p className="mt-1 text-sm">
+              {error}
             </p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Summary */}
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           icon={CalendarCheck}
           label="Reservations"
+          value={
+            loading
+              ? "—"
+              : summary.reservations
+          }
+          description={
+            loading
+              ? "Loading records"
+              : `${summary.pendingReservations} pending`
+          }
         />
 
         <SummaryCard
           icon={TableProperties}
           label="Restaurant Tables"
+          value={
+            loading ? "—" : summary.tables
+          }
+          description="Managed table records"
         />
 
         <SummaryCard
           icon={MapPin}
           label="Event Venues"
+          value={
+            loading ? "—" : summary.venues
+          }
+          description="Managed venue records"
         />
 
         <SummaryCard
           icon={Tags}
           label="Pricing Rules"
+          value={
+            loading
+              ? "—"
+              : summary.pricingRules
+          }
+          description={
+            loading
+              ? "Loading records"
+              : `${summary.pendingPricingRules} pending approval`
+          }
         />
       </section>
 
-      {/* Actions */}
       <section className="mt-10">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold-600">
           Management
@@ -119,8 +264,16 @@ export default function RestaurantManagerDashboardPage() {
                 to={action.path}
                 className="group rounded-2xl border border-stone-200 bg-white p-6 transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-sm"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-50">
-                  <Icon className="h-5 w-5 text-primary-700" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-50">
+                    <Icon className="h-5 w-5 text-primary-700" />
+                  </div>
+
+                  <p className="text-2xl font-bold text-primary-950">
+                    {loading
+                      ? "—"
+                      : action.value}
+                  </p>
                 </div>
 
                 <h3 className="mt-5 font-semibold text-primary-950">
@@ -131,70 +284,83 @@ export default function RestaurantManagerDashboardPage() {
                   {action.description}
                 </p>
 
-                <p className="mt-5 text-sm font-semibold text-primary-700">
-                  Open →
-                </p>
+                <div className="mt-5 flex items-center justify-between gap-4">
+                  <p className="text-xs font-medium text-stone-500">
+                    {loading
+                      ? "Loading..."
+                      : action.detail}
+                  </p>
+
+                  <p className="text-sm font-semibold text-primary-700">
+                    Open →
+                  </p>
+                </div>
               </Link>
             );
           })}
         </div>
       </section>
 
-      {/* Workflow */}
       <section className="mt-10 rounded-2xl bg-primary-950 p-6 text-white sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold-400">
           Reservation Workflow
         </p>
 
         <h2 className="mt-3 text-xl font-semibold">
-          From availability to confirmed reservation
+          From availability to confirmed
+          reservation
         </h2>
 
         <div className="mt-7 grid gap-6 md:grid-cols-4">
           <FlowStep
             number="01"
             title="Check Availability"
-            text="The system checks the requested table or venue against existing bookings."
+            text="The backend checks tables or venues against existing reservations."
           />
 
           <FlowStep
             number="02"
             title="Calculate Price"
-            text="Applicable reservation and pricing rules are evaluated."
+            text="Approved pricing rules are evaluated for venue bookings."
           />
 
           <FlowStep
             number="03"
             title="Create Reservation"
-            text="The booking request is recorded with its appropriate status."
+            text="The booking request is stored with its initial status."
           />
 
           <FlowStep
             number="04"
-            title="Payment Verification"
-            text="Reservation confirmation can follow the required payment-slip verification workflow."
+            title="Monitor"
+            text="The manager reviews reservation, resource and pricing information."
           />
         </div>
       </section>
 
-      {/* Important note */}
       <section className="mt-8 rounded-2xl border border-gold-200 bg-gold-50 p-6">
         <h2 className="font-semibold text-primary-950">
-          Availability must come from backend data
+          Live database integration
         </h2>
 
         <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-700">
-          The frontend will not label a table or venue as available until
-          availability can be evaluated against stored reservations and
-          booking rules. This prevents the interface from presenting demo
-          values as real-time availability.
+          Dashboard totals come from the reservation,
+          event-booking, restaurant-table, venue and
+          pricing-rule backend services. Changes made
+          through the management pages are reflected
+          when this dashboard reloads.
         </p>
       </section>
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, label }) {
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  description,
+}) {
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-5">
       <Icon className="h-5 w-5 text-primary-700" />
@@ -204,7 +370,11 @@ function SummaryCard({ icon: Icon, label }) {
       </p>
 
       <p className="mt-1 text-2xl font-bold text-primary-950">
-        —
+        {value}
+      </p>
+
+      <p className="mt-2 text-xs text-stone-500">
+        {description}
       </p>
     </div>
   );
@@ -225,5 +395,13 @@ function FlowStep({ number, title, text }) {
         {text}
       </p>
     </div>
+  );
+}
+
+function getErrorMessage(error, fallback) {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    fallback
   );
 }

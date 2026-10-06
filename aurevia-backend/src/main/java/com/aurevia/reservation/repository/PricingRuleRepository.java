@@ -11,6 +11,8 @@ import java.util.List;
 public interface PricingRuleRepository
         extends JpaRepository<PricingRule, Integer> {
 
+                boolean existsByVenueVenueId(Integer venueId);
+
     List<PricingRule> findByVenueVenueIdOrderByStartDateAsc(
             Integer venueId
     );

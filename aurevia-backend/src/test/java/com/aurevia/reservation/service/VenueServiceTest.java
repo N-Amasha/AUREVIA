@@ -33,6 +33,14 @@ class VenueServiceTest {
     private VenueFeatureRepository venueFeatureRepository;
 
     @Mock
+    private com.aurevia.reservation.repository.EventBookingRepository
+            eventBookingRepository;
+
+    @Mock
+    private com.aurevia.reservation.repository.PricingRuleRepository
+            pricingRuleRepository;
+
+    @Mock
     private VenueMapper venueMapper;
 
     private VenueService venueService;
@@ -42,6 +50,8 @@ class VenueServiceTest {
         venueService = new VenueService(
                 venueRepository,
                 venueFeatureRepository,
+                eventBookingRepository,
+                pricingRuleRepository,
                 venueMapper
         );
     }

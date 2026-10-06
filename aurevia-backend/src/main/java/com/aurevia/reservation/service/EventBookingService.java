@@ -154,6 +154,22 @@ public class EventBookingService {
         return eventBookingMapper.toResponse(cancelledBooking);
     }
 
+
+    public List<EventBookingResponse> getAllEventBookings() {
+        return eventBookingRepository
+                .findAll()
+                .stream()
+                .sorted(
+                        (first, second) ->
+                                second.getBookingDate()
+                                        .compareTo(
+                                                first.getBookingDate()
+                                        )
+                )
+                .map(eventBookingMapper::toResponse)
+                .toList();
+        }
+
     public EventBookingResponse getEventBookingById(
             Integer eventBookingId
     ) {

@@ -14,6 +14,7 @@ import com.aurevia.user.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -44,19 +45,24 @@ public class ReservationService {
 
         Customer customer = customerRepository
                 .findById(request.customerId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Customer",
-                        "customerId",
-                        request.customerId()
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Customer",
+                                "customerId",
+                                request.customerId()
+                        )
+                );
 
-        RestaurantTable restaurantTable = restaurantTableRepository
-                .findById(request.tableId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Restaurant table",
-                        "tableId",
-                        request.tableId()
-                ));
+        RestaurantTable restaurantTable =
+                restaurantTableRepository
+                        .findById(request.tableId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Restaurant table",
+                                        "tableId",
+                                        request.tableId()
+                                )
+                        );
 
         validateTableAvailability(restaurantTable);
         validateGuestCapacity(request, restaurantTable);
@@ -65,16 +71,41 @@ public class ReservationService {
         Reservation reservation = new Reservation();
         reservation.setCustomer(customer);
         reservation.setRestaurantTable(restaurantTable);
-        reservation.setReservationDate(request.reservationDate());
+        reservation.setReservationDate(
+                request.reservationDate()
+        );
         reservation.setStartTime(request.startTime());
         reservation.setEndTime(request.endTime());
-        reservation.setNumberOfGuests(request.numberOfGuests());
+        reservation.setNumberOfGuests(
+                request.numberOfGuests()
+        );
         reservation.setReservationStatus("PENDING");
 
         Reservation savedReservation =
                 reservationRepository.save(reservation);
 
-        return reservationMapper.toResponse(savedReservation);
+        return reservationMapper.toResponse(
+                savedReservation
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getAllReservations() {
+        return reservationRepository
+                .findAll()
+                .stream()
+                .sorted(
+                        Comparator
+                                .comparing(
+                                        Reservation::getReservationDate
+                                )
+                                .thenComparing(
+                                        Reservation::getStartTime
+                                )
+                                .reversed()
+                )
+                .map(reservationMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -83,17 +114,20 @@ public class ReservationService {
     ) {
         Reservation reservation = reservationRepository
                 .findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation",
-                        "reservationId",
-                        reservationId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Reservation",
+                                "reservationId",
+                                reservationId
+                        )
+                );
 
         return reservationMapper.toResponse(reservation);
     }
 
     @Transactional(readOnly = true)
-    public List<ReservationResponse> getCustomerReservationHistory(
+    public List<ReservationResponse>
+    getCustomerReservationHistory(
             Integer customerId
     ) {
         if (!customerRepository.existsById(customerId)) {
@@ -116,7 +150,9 @@ public class ReservationService {
     private void validateReservationTime(
             ReservationCreateRequest request
     ) {
-        if (!request.endTime().isAfter(request.startTime())) {
+        if (!request.endTime().isAfter(
+                request.startTime()
+        )) {
             throw new BusinessRuleException(
                     "Reservation end time must be later than start time."
             );
@@ -141,7 +177,6 @@ public class ReservationService {
     ) {
         if (request.numberOfGuests()
                 > restaurantTable.getCapacity()) {
-
             throw new BusinessRuleException(
                     "The number of guests exceeds the selected table capacity."
             );

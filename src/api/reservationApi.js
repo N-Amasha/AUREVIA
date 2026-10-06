@@ -62,11 +62,27 @@ export async function cancelEventBooking(eventBookingId) {
   return response.data;
 }
 
+export async function getAllTableReservations() {
+  const response = await axiosClient.get(
+    "/api/reservations",
+  );
+
+  return response.data;
+}
+
 export async function getEventBookingById(
   eventBookingId,
 ) {
   const response = await axiosClient.get(
     `/api/event-bookings/${eventBookingId}`,
+  );
+
+  return response.data;
+}
+
+export async function getAllEventBookings() {
+  const response = await axiosClient.get(
+    "/api/event-bookings",
   );
 
   return response.data;
@@ -130,4 +146,83 @@ export async function getAvailableRestaurantTables(
   );
 
   return response.data;
+}
+
+
+export async function getAllRestaurantTables() {
+  const response = await axiosClient.get(
+    "/api/restaurant-tables",
+  );
+
+  return response.data;
+}
+
+export async function getRestaurantTableById(tableId) {
+  const response = await axiosClient.get(
+    `/api/restaurant-tables/${tableId}`,
+  );
+
+  return response.data;
+}
+
+export async function createRestaurantTable(tableData) {
+  const response = await axiosClient.post(
+    "/api/restaurant-tables",
+    tableData,
+  );
+
+  return response.data;
+}
+
+export async function updateRestaurantTable(
+  tableId,
+  tableData,
+) {
+  const response = await axiosClient.put(
+    `/api/restaurant-tables/${tableId}`,
+    tableData,
+  );
+
+  return response.data;
+}
+
+export async function deleteRestaurantTable(tableId) {
+  await axiosClient.delete(
+    `/api/restaurant-tables/${tableId}`,
+  );
+}
+
+export async function getAllVenues() {
+  const response = await axiosClient.get(
+    "/api/venues",
+  );
+
+  return response.data;
+}
+
+export async function createVenue(venueData) {
+  const response = await axiosClient.post(
+    "/api/venues",
+    venueData,
+  );
+
+  return response.data;
+}
+
+export async function updateVenue(
+  venueId,
+  venueData,
+) {
+  const response = await axiosClient.put(
+    `/api/venues/${venueId}`,
+    venueData,
+  );
+
+  return response.data;
+}
+
+export async function deleteVenue(venueId) {
+  await axiosClient.delete(
+    `/api/venues/${venueId}`,
+  );
 }

@@ -3,6 +3,7 @@ package com.aurevia.reservation.service;
 import com.aurevia.exception.BusinessRuleException;
 import com.aurevia.reservation.dto.RestaurantTableResponse;
 import com.aurevia.reservation.entity.RestaurantTable;
+import com.aurevia.reservation.repository.ReservationRepository;
 import com.aurevia.reservation.repository.RestaurantTableRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,13 +27,17 @@ class RestaurantTableServiceTest {
     @Mock
     private RestaurantTableRepository restaurantTableRepository;
 
+    @Mock
+    private ReservationRepository reservationRepository;
+
     private RestaurantTableService restaurantTableService;
 
     @BeforeEach
     void setUp() {
         restaurantTableService =
                 new RestaurantTableService(
-                        restaurantTableRepository
+                        restaurantTableRepository,
+                        reservationRepository
                 );
     }
 

@@ -9,6 +9,8 @@ import java.util.List;
 public interface VenueFeatureRepository
         extends JpaRepository<VenueFeature, VenueFeatureId> {
 
+            boolean existsByVenueVenueId(Integer venueId);
+
     List<VenueFeature>
     findByVenueVenueIdOrderByIdFeatureNameAsc(Integer venueId);
 

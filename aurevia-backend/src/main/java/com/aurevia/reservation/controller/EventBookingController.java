@@ -5,8 +5,10 @@ import com.aurevia.reservation.dto.EventBookingResponse;
 import com.aurevia.reservation.dto.EventBookingUpdateRequest;
 import com.aurevia.reservation.service.EventBookingService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/event-bookings")
+@Validated
 public class EventBookingController {
 
     private final EventBookingService eventBookingService;
@@ -31,49 +34,80 @@ public class EventBookingController {
     }
 
     @PostMapping
-    public ResponseEntity<EventBookingResponse> createEventBooking(
+    public ResponseEntity<EventBookingResponse>
+    createEventBooking(
             @Valid
             @RequestBody
             EventBookingCreateRequest request
     ) {
         EventBookingResponse response =
-                eventBookingService.createEventBooking(request);
+                eventBookingService
+                        .createEventBooking(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
     }
 
+    @GetMapping
+    public ResponseEntity<List<EventBookingResponse>>
+    getAllEventBookings() {
+        return ResponseEntity.ok(
+                eventBookingService
+                        .getAllEventBookings()
+        );
+    }
+
     @PutMapping("/{eventBookingId}")
-    public ResponseEntity<EventBookingResponse> updateEventBooking(
-            @PathVariable Integer eventBookingId,
+    public ResponseEntity<EventBookingResponse>
+    updateEventBooking(
+            @PathVariable
+            @Positive(
+                    message =
+                            "Event booking ID must be greater than zero."
+            )
+            Integer eventBookingId,
+
             @Valid
             @RequestBody
             EventBookingUpdateRequest request
     ) {
         return ResponseEntity.ok(
-                eventBookingService.updateEventBooking(
-                        eventBookingId,
-                        request
-                )
+                eventBookingService
+                        .updateEventBooking(
+                                eventBookingId,
+                                request
+                        )
         );
     }
 
     @DeleteMapping("/{eventBookingId}")
-    public ResponseEntity<EventBookingResponse> cancelEventBooking(
-            @PathVariable Integer eventBookingId
+    public ResponseEntity<EventBookingResponse>
+    cancelEventBooking(
+            @PathVariable
+            @Positive(
+                    message =
+                            "Event booking ID must be greater than zero."
+            )
+            Integer eventBookingId
     ) {
         return ResponseEntity.ok(
-                eventBookingService.cancelEventBooking(
-                        eventBookingId
-                )
+                eventBookingService
+                        .cancelEventBooking(
+                                eventBookingId
+                        )
         );
     }
 
     @GetMapping("/{eventBookingId}")
     public ResponseEntity<EventBookingResponse>
     getEventBookingById(
-            @PathVariable Integer eventBookingId
+            @PathVariable
+            @Positive(
+                    message =
+                            "Event booking ID must be greater than zero."
+            )
+            Integer eventBookingId
     ) {
         return ResponseEntity.ok(
                 eventBookingService
@@ -86,7 +120,12 @@ public class EventBookingController {
     @GetMapping("/customers/{customerId}")
     public ResponseEntity<List<EventBookingResponse>>
     getCustomerEventBookings(
-            @PathVariable Integer customerId
+            @PathVariable
+            @Positive(
+                    message =
+                            "Customer ID must be greater than zero."
+            )
+            Integer customerId
     ) {
         return ResponseEntity.ok(
                 eventBookingService

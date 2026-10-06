@@ -11,6 +11,8 @@ import java.util.List;
 public interface EventBookingRepository
         extends JpaRepository<EventBooking, Integer> {
 
+                boolean existsByVenueVenueId(Integer venueId);
+
     List<EventBooking>
     findByCustomerUserIdOrderByBookingDateDesc(Integer customerId);
 
