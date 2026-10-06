@@ -34,6 +34,13 @@ public class ReviewController {
                 .body(reviewService.createReview(request));
     }
 
+    @GetMapping
+    public ResponseEntity<List<ReviewResponse>> getAllReviews() {
+        return ResponseEntity.ok(
+                reviewService.getAllReviews()
+        );
+    }
+
     @GetMapping("/{reviewId}")
     public ResponseEntity<ReviewResponse> getReviewById(
             @PathVariable Integer reviewId

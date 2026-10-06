@@ -32,4 +32,15 @@ public interface EventServiceRepository
     BigDecimal calculateEventServiceCost(
             @Param("eventId") Integer eventId
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(es.cost), 0)
+            FROM EventService es
+            WHERE es.event.eventId = :eventId
+              AND es.eventServiceId <> :eventServiceId
+            """)
+    BigDecimal calculateOtherServiceCost(
+            @Param("eventId") Integer eventId,
+            @Param("eventServiceId") Integer eventServiceId
+    );
 }

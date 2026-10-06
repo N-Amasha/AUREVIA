@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface ReviewRepository
         extends JpaRepository<Review, Integer> {
 
+    List<Review> findAllByOrderByReviewDateDesc();
+
     List<Review>
     findByCustomerUserIdOrderByReviewDateDesc(Integer customerId);
 

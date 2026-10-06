@@ -81,6 +81,14 @@ public class ReviewService {
         );
     }
 
+    public List<ReviewResponse> getAllReviews() {
+        return reviewRepository
+                .findAllByOrderByReviewDateDesc()
+                .stream()
+                .map(reviewMapper::toResponse)
+                .toList();
+    }
+
     public ReviewResponse getReviewById(Integer reviewId) {
         Review review = reviewRepository
                 .findById(reviewId)

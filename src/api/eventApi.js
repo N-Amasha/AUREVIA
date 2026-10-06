@@ -80,6 +80,26 @@ export async function createEventService(serviceData) {
   return response.data;
 }
 
+export async function updateEventService(
+  eventServiceId,
+  serviceData,
+) {
+  const response = await axiosClient.put(
+    `/api/event-services/${eventServiceId}`,
+    serviceData,
+  );
+
+  return response.data;
+}
+
+export async function deleteEventService(
+  eventServiceId,
+) {
+  await axiosClient.delete(
+    `/api/event-services/${eventServiceId}`,
+  );
+}
+
 export async function getEventServiceById(
   eventServiceId,
 ) {
@@ -203,6 +223,14 @@ export async function createReview(reviewData) {
   const response = await axiosClient.post(
     "/api/reviews",
     reviewData,
+  );
+
+  return response.data;
+}
+
+export async function getAllReviews() {
+  const response = await axiosClient.get(
+    "/api/reviews",
   );
 
   return response.data;

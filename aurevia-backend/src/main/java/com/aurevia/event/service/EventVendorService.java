@@ -2,6 +2,7 @@ package com.aurevia.event.service;
 
 import com.aurevia.event.dto.EventServiceCreateRequest;
 import com.aurevia.event.dto.EventServiceResponse;
+import com.aurevia.event.dto.EventServiceUpdateRequest;
 import com.aurevia.event.entity.Event;
 import com.aurevia.event.entity.EventService;
 import com.aurevia.event.entity.Vendor;
@@ -16,10 +17,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
 public class EventVendorService {
+
+    private static final Set<String> SERVICE_STATUSES =
+            Set.of(
+                    "PLANNED",
+                    "CONFIRMED",
+                    "COMPLETED",
+                    "CANCELLED"
+            );
 
     private final EventServiceRepository eventServiceRepository;
     private final EventRepository eventRepository;
@@ -42,30 +53,23 @@ public class EventVendorService {
     public EventServiceResponse createEventService(
             EventServiceCreateRequest request
     ) {
-        validateTimeRange(request);
+        validateTimeRange(
+                request.startTime(),
+                request.endTime()
+        );
 
-        Event event = eventRepository
-                .findById(request.eventId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Event",
-                                "eventId",
-                                request.eventId()
-                        )
-                );
+        Event event = findEvent(request.eventId());
+        Vendor vendor = findVendor(request.vendorId());
 
-        Vendor vendor = vendorRepository
-                .findById(request.vendorId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Vendor",
-                                "vendorId",
-                                request.vendorId()
-                        )
-                );
+        validateServiceDate(
+                request.serviceDate(),
+                event
+        );
 
-        validateServiceDate(request, event);
-        validateBudget(request, event);
+        validateCreateBudget(
+                request.cost(),
+                event
+        );
 
         EventService eventService = new EventService(
                 event,
@@ -83,21 +87,89 @@ public class EventVendorService {
         );
     }
 
-    public EventServiceResponse getEventServiceById(
+    @Transactional
+    public EventServiceResponse updateEventService(
+            Integer eventServiceId,
+            EventServiceUpdateRequest request
+    ) {
+        EventService eventService =
+                findEventService(eventServiceId);
+
+        if ("COMPLETED".equalsIgnoreCase(
+                eventService.getServiceStatus()
+        )) {
+            throw new BusinessRuleException(
+                    "Completed event services cannot be updated."
+            );
+        }
+
+        validateTimeRange(
+                request.startTime(),
+                request.endTime()
+        );
+
+        Event event = eventService.getEvent();
+        Vendor vendor = findVendor(request.vendorId());
+
+        validateServiceDate(
+                request.serviceDate(),
+                event
+        );
+
+        validateUpdateBudget(
+                request.cost(),
+                eventService,
+                event
+        );
+
+        String serviceStatus =
+                normalizeStatus(request.serviceStatus());
+
+        eventService.setVendor(vendor);
+        eventService.setServiceName(
+                request.serviceName().trim()
+        );
+        eventService.setServiceDate(
+                request.serviceDate()
+        );
+        eventService.setStartTime(
+                request.startTime()
+        );
+        eventService.setEndTime(
+                request.endTime()
+        );
+        eventService.setCost(request.cost());
+        eventService.setServiceStatus(serviceStatus);
+
+        return eventServiceMapper.toResponse(
+                eventServiceRepository.save(eventService)
+        );
+    }
+
+    @Transactional
+    public void deleteEventService(
             Integer eventServiceId
     ) {
         EventService eventService =
-                eventServiceRepository
-                        .findById(eventServiceId)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Event service",
-                                        "eventServiceId",
-                                        eventServiceId
-                                )
-                        );
+                findEventService(eventServiceId);
 
-        return eventServiceMapper.toResponse(eventService);
+        if ("COMPLETED".equalsIgnoreCase(
+                eventService.getServiceStatus()
+        )) {
+            throw new BusinessRuleException(
+                    "Completed event services cannot be deleted."
+            );
+        }
+
+        eventServiceRepository.delete(eventService);
+    }
+
+    public EventServiceResponse getEventServiceById(
+            Integer eventServiceId
+    ) {
+        return eventServiceMapper.toResponse(
+                findEventService(eventServiceId)
+        );
     }
 
     public List<EventServiceResponse> getServicesByEvent(
@@ -125,15 +197,12 @@ public class EventVendorService {
     public List<EventServiceResponse> getServicesByStatus(
             String serviceStatus
     ) {
-        if (serviceStatus == null || serviceStatus.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Service status is required."
-            );
-        }
+        String normalizedStatus =
+                normalizeStatus(serviceStatus);
 
         return eventServiceRepository
                 .findByServiceStatusIgnoreCase(
-                        serviceStatus.trim()
+                        normalizedStatus
                 )
                 .stream()
                 .map(eventServiceMapper::toResponse)
@@ -153,10 +222,49 @@ public class EventVendorService {
                 .calculateEventServiceCost(eventId);
     }
 
-    private void validateTimeRange(
-            EventServiceCreateRequest request
+    private Event findEvent(Integer eventId) {
+        return eventRepository
+                .findById(eventId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Event",
+                                "eventId",
+                                eventId
+                        )
+                );
+    }
+
+    private Vendor findVendor(Integer vendorId) {
+        return vendorRepository
+                .findById(vendorId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Vendor",
+                                "vendorId",
+                                vendorId
+                        )
+                );
+    }
+
+    private EventService findEventService(
+            Integer eventServiceId
     ) {
-        if (!request.endTime().isAfter(request.startTime())) {
+        return eventServiceRepository
+                .findById(eventServiceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Event service",
+                                "eventServiceId",
+                                eventServiceId
+                        )
+                );
+    }
+
+    private void validateTimeRange(
+            java.time.LocalTime startTime,
+            java.time.LocalTime endTime
+    ) {
+        if (!endTime.isAfter(startTime)) {
             throw new BusinessRuleException(
                     "Service end time must be later than start time."
             );
@@ -164,18 +272,18 @@ public class EventVendorService {
     }
 
     private void validateServiceDate(
-            EventServiceCreateRequest request,
+            java.time.LocalDate serviceDate,
             Event event
     ) {
-        if (!request.serviceDate().equals(event.getEventDate())) {
+        if (!serviceDate.equals(event.getEventDate())) {
             throw new BusinessRuleException(
                     "Service date must match the event date."
             );
         }
     }
 
-    private void validateBudget(
-            EventServiceCreateRequest request,
+    private void validateCreateBudget(
+            BigDecimal requestedCost,
             Event event
     ) {
         BigDecimal currentCost =
@@ -184,11 +292,60 @@ public class EventVendorService {
                                 event.getEventId()
                         );
 
-        if (currentCost.add(request.cost())
-                .compareTo(event.getBudget()) > 0) {
+        BigDecimal updatedCost =
+                currentCost.add(requestedCost);
+
+        if (updatedCost.compareTo(event.getBudget()) > 0) {
             throw new BusinessRuleException(
                     "Event service costs cannot exceed the event budget."
             );
         }
+    }
+
+    private void validateUpdateBudget(
+            BigDecimal requestedCost,
+            EventService eventService,
+            Event event
+    ) {
+        BigDecimal otherServiceCost =
+                eventServiceRepository
+                        .calculateOtherServiceCost(
+                                event.getEventId(),
+                                eventService.getEventServiceId()
+                        );
+
+        BigDecimal updatedCost =
+                otherServiceCost.add(requestedCost);
+
+        if (updatedCost.compareTo(event.getBudget()) > 0) {
+            throw new BusinessRuleException(
+                    "Event service costs cannot exceed the event budget."
+            );
+        }
+    }
+
+    private String normalizeStatus(String serviceStatus) {
+        if (serviceStatus == null
+                || serviceStatus.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Service status is required."
+            );
+        }
+
+        String normalizedStatus =
+                serviceStatus
+                        .trim()
+                        .toUpperCase(Locale.ROOT);
+
+        if (!SERVICE_STATUSES.contains(
+                normalizedStatus
+        )) {
+            throw new BusinessRuleException(
+                    "Service status must be PLANNED, "
+                            + "CONFIRMED, COMPLETED or CANCELLED."
+            );
+        }
+
+        return normalizedStatus;
     }
 }
