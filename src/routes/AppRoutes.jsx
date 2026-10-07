@@ -109,7 +109,6 @@ import ChefLayout from "../layouts/ChefLayout";
 import ChefDashboardPage from "../pages/menu/ChefDashboardPage";
 import MenuItemManagementPage from "../pages/menu/MenuItemManagementPage";
 import MenuCategoriesPage from "../pages/menu/MenuCategoriesPage";
-import DietaryAllergenPage from "../pages/menu/DietaryAllergenPage";
 
 import NotFoundPage from "../pages/errors/NotFoundPage";
 
@@ -285,11 +284,6 @@ export default function AppRoutes() {
         <Route
           path="categories"
           element={<MenuCategoriesPage />}
-        />
-
-        <Route
-          path="dietary"
-          element={<DietaryAllergenPage />}
         />
       </Route>
 

@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   UtensilsCrossed,
   ListTree,
-  ShieldCheck,
 } from "lucide-react";
 
 
@@ -25,11 +24,6 @@ const navigation = [
     name: "Categories",
     path: "/chef/categories",
     icon: ListTree,
-  },
-  {
-    name: "Dietary & Allergens",
-    path: "/chef/dietary",
-    icon: ShieldCheck,
   },
 ];
 
@@ -91,8 +85,7 @@ export default function ChefLayout() {
             </p>
 
             <p className="mt-2 text-xs leading-5 text-primary-900">
-              Maintain menu information and dietary details used by
-              customer-facing menu and catering features.
+              Maintain menu information used by customer-facing menu and catering features.
             </p>
           </div>
         </aside>
