@@ -11,6 +11,8 @@ import java.util.List;
 public interface EmployeeTaskRepository
         extends JpaRepository<EmployeeTask, Integer> {
 
+    List<EmployeeTask> findAllByOrderByDueDateAsc();
+
     List<EmployeeTask>
     findByEmployeeEmployeeIdOrderByDueDateAsc(
             Integer employeeId

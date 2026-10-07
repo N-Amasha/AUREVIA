@@ -9,11 +9,21 @@ import java.util.Optional;
 public interface EmployeeRepository
         extends JpaRepository<Employee, Integer> {
 
-    Optional<Employee> findByUserAccountEmailIgnoreCase(String email);
+    Optional<Employee>
+    findByUserAccountEmailIgnoreCase(String email);
 
     List<Employee> findByEmploymentStatusIgnoreCase(
             String employmentStatus
     );
 
-    List<Employee> findBySupervisorEmployeeId(Integer supervisorId);
+    List<Employee>
+    findByEmploymentStatusIgnoreCaseOrderByEmployeeIdAsc(
+            String employmentStatus
+    );
+
+    List<Employee> findBySupervisorEmployeeId(
+            Integer supervisorId
+    );
+
+    List<Employee> findAllByOrderByEmployeeIdAsc();
 }

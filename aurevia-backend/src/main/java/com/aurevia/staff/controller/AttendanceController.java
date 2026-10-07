@@ -44,6 +44,13 @@ public class AttendanceController {
                 );
     }
 
+    @GetMapping
+    public ResponseEntity<List<AttendanceResponse>> getAllAttendance() {
+        return ResponseEntity.ok(
+                attendanceService.getAllAttendance()
+        );
+    }
+
     @GetMapping("/{attendanceId}")
     public AttendanceResponse getAttendanceById(
             @PathVariable Integer attendanceId

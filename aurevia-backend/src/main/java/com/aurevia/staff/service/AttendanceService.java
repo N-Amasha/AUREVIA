@@ -98,6 +98,14 @@ public class AttendanceService {
         );
     }
 
+    public List<AttendanceResponse> getAllAttendance() {
+        return attendanceRepository
+                .findAllByOrderByAttendanceDateDescEmployeeEmployeeIdAsc()
+                .stream()
+                .map(attendanceMapper::toResponse)
+                .toList();
+    }
+
     public AttendanceResponse getAttendanceById(
             Integer attendanceId
     ) {

@@ -44,6 +44,13 @@ public class EmployeeTaskController {
                 );
     }
 
+    @GetMapping
+    public ResponseEntity<List<EmployeeTaskResponse>> getAllTasks() {
+        return ResponseEntity.ok(
+                employeeTaskService.getAllTasks()
+        );
+    }
+
     @GetMapping("/{taskId}")
     public EmployeeTaskResponse getTaskById(
             @PathVariable Integer taskId

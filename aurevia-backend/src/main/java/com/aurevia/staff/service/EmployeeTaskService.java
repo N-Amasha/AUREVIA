@@ -80,6 +80,14 @@ public class EmployeeTaskService {
         );
     }
 
+    public List<EmployeeTaskResponse> getAllTasks() {
+        return employeeTaskRepository
+                .findAllByOrderByDueDateAsc()
+                .stream()
+                .map(employeeTaskMapper::toResponse)
+                .toList();
+    }
+
     public EmployeeTaskResponse getTaskById(
             Integer taskId
     ) {

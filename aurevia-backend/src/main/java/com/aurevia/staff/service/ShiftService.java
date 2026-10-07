@@ -74,6 +74,14 @@ public class ShiftService {
         );
     }
 
+    public List<ShiftResponse> getAllShifts() {
+        return shiftRepository
+                .findAllByOrderByShiftDateAscStartTimeAsc()
+                .stream()
+                .map(shiftMapper::toResponse)
+                .toList();
+    }
+
     public ShiftResponse getShiftById(Integer shiftId) {
         return shiftMapper.toResponse(findShift(shiftId));
     }

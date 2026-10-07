@@ -95,6 +95,14 @@ public class LeaveRequestService {
         );
     }
 
+    public List<LeaveRequestResponse> getAllLeaveRequests() {
+        return leaveRequestRepository
+                .findAllByOrderByRequestDateDesc()
+                .stream()
+                .map(leaveRequestMapper::toResponse)
+                .toList();
+    }
+
     public LeaveRequestResponse getLeaveRequestById(
             Integer leaveRequestId
     ) {

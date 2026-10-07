@@ -43,6 +43,14 @@ public class LeaveRequestController {
                 );
     }
 
+    @GetMapping
+    public ResponseEntity<List<LeaveRequestResponse>>
+    getAllLeaveRequests() {
+        return ResponseEntity.ok(
+                leaveRequestService.getAllLeaveRequests()
+        );
+    }
+
     @GetMapping("/{leaveRequestId}")
     public LeaveRequestResponse getLeaveRequestById(
             @PathVariable Integer leaveRequestId

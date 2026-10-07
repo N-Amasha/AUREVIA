@@ -12,6 +12,9 @@ public interface LeaveRequestRepository
         extends JpaRepository<LeaveRequest, Integer> {
 
     List<LeaveRequest>
+    findAllByOrderByRequestDateDesc();
+
+    List<LeaveRequest>
     findByEmployeeEmployeeIdOrderByRequestDateDesc(
             Integer employeeId
     );

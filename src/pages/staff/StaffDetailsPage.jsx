@@ -1,29 +1,144 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
   ClipboardCheck,
-  Info,
   ListChecks,
-  UserRoundCheck,
+  RefreshCw,
   UserRound,
+  UserRoundCheck,
 } from "lucide-react";
+import {
+  getEmployeeAttendance,
+  getEmployeeById,
+  getEmployeeLeaveRequests,
+  getEmployeeShifts,
+  getEmployeeTasks,
+} from "../../api/staffApi";
 
 export default function StaffDetailsPage() {
   const { staffId } = useParams();
 
+  const [employee, setEmployee] = useState(null);
+  const [shifts, setShifts] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDetails() {
+      try {
+        const [
+          employeeData,
+          shiftData,
+          taskData,
+          attendanceData,
+          leaveData,
+        ] = await Promise.all([
+          getEmployeeById(staffId),
+          getEmployeeShifts(staffId),
+          getEmployeeTasks(staffId),
+          getEmployeeAttendance(staffId),
+          getEmployeeLeaveRequests(staffId),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setEmployee(employeeData);
+        setShifts(Array.isArray(shiftData) ? shiftData : []);
+        setTasks(Array.isArray(taskData) ? taskData : []);
+        setAttendance(
+          Array.isArray(attendanceData) ? attendanceData : [],
+        );
+        setLeaveRequests(
+          Array.isArray(leaveData) ? leaveData : [],
+        );
+        setError("");
+      } catch (requestError) {
+        if (!active) {
+          return;
+        }
+
+        setError(getErrorMessage(requestError));
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDetails();
+
+    return () => {
+      active = false;
+    };
+  }, [staffId, refreshKey]);
+
+  const recentTasks = useMemo(
+    () =>
+      [...tasks]
+        .sort((first, second) =>
+          compareDates(
+            second.assignedDate,
+            first.assignedDate,
+          ),
+        )
+        .slice(0, 5),
+    [tasks],
+  );
+
+  const recentAttendance = useMemo(
+    () =>
+      [...attendance]
+        .sort((first, second) =>
+          compareDates(
+            second.attendanceDate,
+            first.attendanceDate,
+          ),
+        )
+        .slice(0, 5),
+    [attendance],
+  );
+
+  function refreshDetails() {
+    setLoading(true);
+    setRefreshKey((currentKey) => currentKey + 1);
+  }
+
   return (
     <div>
-      {/* Back */}
-      <Link
-        to="/hr/staff"
-        className="inline-flex items-center gap-2 text-sm font-medium text-stone-600 transition hover:text-primary-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Staff
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Link
+          to="/hr/staff"
+          className="inline-flex items-center gap-2 text-sm font-medium text-stone-600 transition hover:text-primary-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Staff
+        </Link>
 
-      {/* Header */}
+        <button
+          type="button"
+          onClick={refreshDetails}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-primary-900 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${
+              loading ? "animate-spin" : ""
+            }`}
+          />
+          Refresh
+        </button>
+      </div>
+
       <section className="mt-7">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-600">
           Staff Management & Allocation
@@ -34,188 +149,343 @@ export default function StaffDetailsPage() {
         </h1>
 
         <p className="mt-3 max-w-2xl leading-7 text-stone-600">
-          Review employee information and related workforce activity for a
-          selected staff member.
+          Review employee information and related workforce
+          activity for the selected staff member.
         </p>
       </section>
 
-      {/* Backend Notice */}
-      <section className="mt-8 rounded-2xl border border-primary-200 bg-primary-50 p-5">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-700" />
+      {error && (
+        <section className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="font-semibold text-red-900">
+            Unable to load staff details
+          </p>
 
-          <div>
-            <h2 className="font-semibold text-primary-950">
-              Staff record not connected yet
+          <p className="mt-1 text-sm leading-6 text-red-700">
+            {error}
+          </p>
+        </section>
+      )}
+
+      {loading ? (
+        <LoadingState />
+      ) : employee ? (
+        <>
+          <section className="mt-8 grid gap-6 xl:grid-cols-2">
+            <InfoCard
+              icon={UserRound}
+              title="Employee information"
+              description="Account and role information for this staff member."
+              items={[
+                ["Employee ID", employee.employeeId],
+                ["User ID", employee.userId],
+                ["Name", employee.fullName],
+                ["Email", employee.email],
+              ]}
+            />
+
+            <InfoCard
+              icon={UserRoundCheck}
+              title="Employment information"
+              description="Current employment and reporting information."
+              items={[
+                ["Role", formatLabel(employee.role)],
+                [
+                  "Status",
+                  formatLabel(employee.employmentStatus),
+                ],
+                ["Hire Date", formatDate(employee.hireDate)],
+                [
+                  "Supervisor",
+                  employee.supervisorName || "Not assigned",
+                ],
+              ]}
+            />
+          </section>
+
+          <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-primary-950">
+              Workforce overview
             </h2>
 
-            <p className="mt-1 text-sm leading-6 text-primary-800">
-              This page is ready to load staff member{" "}
-              <span className="font-semibold">{staffId}</span> from the
-              Aurevia backend. No real employee record is currently loaded.
+            <p className="mt-1 text-sm leading-6 text-stone-600">
+              Workforce records currently associated with{" "}
+              {employee.fullName}.
             </p>
-          </div>
-        </div>
-      </section>
 
-      {/* Employee Information */}
-      <section className="mt-8 grid gap-6 xl:grid-cols-2">
-        <InfoCard
-          icon={UserRound}
-          title="Employee information"
-          description="Basic information associated with the selected staff member."
-          items={[
-            ["Staff ID", staffId || "—"],
-            ["Name", "—"],
-            ["Role", "—"],
-            ["Status", "—"],
-          ]}
-        />
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <OverviewCard
+                icon={CalendarDays}
+                label="Scheduled Shifts"
+                value={shifts.length}
+              />
 
-        <InfoCard
-          icon={UserRoundCheck}
-          title="Employment information"
-          description="Work-related information will be displayed here."
-          items={[
-            ["Contact", "—"],
-            ["Joined Date", "—"],
-            ["Current Shift", "—"],
-            ["Availability", "—"],
-          ]}
-        />
-      </section>
+              <OverviewCard
+                icon={ListChecks}
+                label="Assignments"
+                value={tasks.length}
+              />
 
-      {/* Workforce Overview */}
-      <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8">
-        <h2 className="text-lg font-semibold text-primary-950">
-          Workforce overview
-        </h2>
+              <OverviewCard
+                icon={ClipboardCheck}
+                label="Attendance Records"
+                value={attendance.length}
+              />
 
-        <p className="mt-1 text-sm leading-6 text-stone-600">
-          Related workforce records will be summarized here after backend
-          integration.
-        </p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <OverviewCard
-            icon={CalendarDays}
-            label="Scheduled Shifts"
-          />
-
-          <OverviewCard
-            icon={ListChecks}
-            label="Assignments"
-          />
-
-          <OverviewCard
-            icon={ClipboardCheck}
-            label="Attendance"
-          />
-
-          <OverviewCard
-            icon={UserRoundCheck}
-            label="Leave Requests"
-          />
-        </div>
-      </section>
-
-      {/* Recent Assignments */}
-      <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <div className="border-b border-stone-200 p-6">
-          <div className="flex items-start gap-3">
-            <ListChecks className="mt-1 h-5 w-5 text-primary-700" />
-
-            <div>
-              <h2 className="text-lg font-semibold text-primary-950">
-                Recent assignments
-              </h2>
-
-              <p className="mt-1 text-sm text-stone-600">
-                Restaurant and event assignments related to this employee
-                will appear here.
-              </p>
+              <OverviewCard
+                icon={UserRoundCheck}
+                label="Leave Requests"
+                value={leaveRequests.length}
+              />
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="hidden grid-cols-5 gap-4 border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-stone-500 md:grid">
-          <span>Assignment</span>
-          <span>Type</span>
-          <span>Date</span>
-          <span>Status</span>
-          <span>Reference</span>
-        </div>
+          <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <SectionHeader
+              icon={CalendarDays}
+              title="Scheduled shifts"
+              description="Shift records assigned to this employee."
+            />
 
-        <EmptySection
-          icon={ListChecks}
-          title="No assignment records available"
-          text="Staff assignments will appear here after workforce records are connected to the backend."
-        />
-      </section>
+            {shifts.length === 0 ? (
+              <EmptySection
+                icon={CalendarDays}
+                title="No shift records available"
+                text="No shifts are currently assigned to this employee."
+              />
+            ) : (
+              <div className="divide-y divide-stone-200">
+                {[...shifts]
+                  .sort((first, second) =>
+                    compareDates(
+                      second.shiftDate,
+                      first.shiftDate,
+                    ),
+                  )
+                  .slice(0, 5)
+                  .map((shift) => (
+                    <div
+                      key={shift.shiftId}
+                      className="grid gap-4 px-6 py-5 md:grid-cols-[1fr_1fr_auto]"
+                    >
+                      <div>
+                        <p className="font-semibold text-primary-950">
+                          {formatDate(shift.shiftDate)}
+                        </p>
 
-      {/* Attendance */}
-      <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <div className="border-b border-stone-200 p-6">
-          <div className="flex items-start gap-3">
-            <ClipboardCheck className="mt-1 h-5 w-5 text-primary-700" />
+                        <p className="mt-1 text-sm text-stone-500">
+                          Shift #{shift.shiftId}
+                        </p>
+                      </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-primary-950">
-                Recent attendance
-              </h2>
+                      <div>
+                        <p className="text-sm font-medium text-stone-700">
+                          {formatTime(shift.startTime)} –{" "}
+                          {formatTime(shift.endTime)}
+                        </p>
+                      </div>
 
-              <p className="mt-1 text-sm text-stone-600">
-                Attendance information associated with this staff member
-                will appear here.
-              </p>
-            </div>
-          </div>
-        </div>
+                      <StatusBadge value={shift.shiftStatus} />
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
 
-        <EmptySection
-          icon={ClipboardCheck}
-          title="No attendance records available"
-          text="Attendance history will appear here after backend integration."
-        />
-      </section>
+          <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <SectionHeader
+              icon={ListChecks}
+              title="Recent assignments"
+              description="Operational tasks assigned to this employee."
+            />
 
-      {/* Relationship explanation */}
-      <section className="mt-8 rounded-2xl bg-primary-950 p-6 text-white sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold-400">
-          Staff Record Relationships
-        </p>
+            {recentTasks.length === 0 ? (
+              <EmptySection
+                icon={ListChecks}
+                title="No assignment records available"
+                text="No tasks are currently assigned to this employee."
+              />
+            ) : (
+              <div className="divide-y divide-stone-200">
+                {recentTasks.map((task) => (
+                  <div
+                    key={task.taskId}
+                    className="grid gap-4 px-6 py-5 lg:grid-cols-[minmax(0,1fr)_180px_150px_auto]"
+                  >
+                    <div>
+                      <p className="font-semibold text-primary-950">
+                        {task.taskDescription}
+                      </p>
 
-        <h2 className="mt-3 text-xl font-semibold">
-          One employee connects to multiple workforce activities
-        </h2>
+                      <p className="mt-1 text-sm text-stone-500">
+                        {task.eventName
+                          ? `Event: ${task.eventName}`
+                          : "General assignment"}
+                      </p>
+                    </div>
 
-        <div className="mt-7 grid gap-6 md:grid-cols-4">
-          <FlowStep
-            number="01"
-            title="Employee"
-            text="The employee record identifies the staff member."
-          />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                        Assigned
+                      </p>
 
-          <FlowStep
-            number="02"
-            title="Shift"
-            text="Shift records describe when the employee is scheduled to work."
-          />
+                      <p className="mt-1 text-sm text-stone-700">
+                        {formatDate(task.assignedDate)}
+                      </p>
+                    </div>
 
-          <FlowStep
-            number="03"
-            title="Assignment"
-            text="Assignments describe operational tasks associated with the employee."
-          />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                        Due
+                      </p>
 
-          <FlowStep
-            number="04"
-            title="Attendance & Leave"
-            text="Attendance and leave records support workforce availability management."
-          />
-        </div>
-      </section>
+                      <p
+                        className={`mt-1 text-sm ${
+                          task.overdue
+                            ? "font-semibold text-red-700"
+                            : "text-stone-700"
+                        }`}
+                      >
+                        {formatDate(task.dueDate)}
+                      </p>
+                    </div>
+
+                    <StatusBadge value={task.taskStatus} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <SectionHeader
+              icon={ClipboardCheck}
+              title="Recent attendance"
+              description="Latest attendance records for this employee."
+            />
+
+            {recentAttendance.length === 0 ? (
+              <EmptySection
+                icon={ClipboardCheck}
+                title="No attendance records available"
+                text="No attendance history is currently recorded for this employee."
+              />
+            ) : (
+              <div className="divide-y divide-stone-200">
+                {recentAttendance.map((record) => (
+                  <div
+                    key={record.attendanceId}
+                    className="grid gap-4 px-6 py-5 md:grid-cols-[1fr_1fr_1fr_auto]"
+                  >
+                    <div>
+                      <p className="font-semibold text-primary-950">
+                        {formatDate(record.attendanceDate)}
+                      </p>
+
+                      <p className="mt-1 text-sm text-stone-500">
+                        Attendance #{record.attendanceId}
+                      </p>
+                    </div>
+
+                    <DetailValue
+                      label="Check In"
+                      value={formatTime(record.checkInTime)}
+                    />
+
+                    <DetailValue
+                      label="Check Out"
+                      value={formatTime(record.checkOutTime)}
+                    />
+
+                    <StatusBadge
+                      value={record.attendanceStatus}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <SectionHeader
+              icon={UserRoundCheck}
+              title="Leave requests"
+              description="Leave requests submitted by this employee."
+            />
+
+            {leaveRequests.length === 0 ? (
+              <EmptySection
+                icon={UserRoundCheck}
+                title="No leave requests available"
+                text="No leave requests are currently recorded for this employee."
+              />
+            ) : (
+              <div className="divide-y divide-stone-200">
+                {[...leaveRequests]
+                  .sort((first, second) =>
+                    compareDates(
+                      second.requestDate,
+                      first.requestDate,
+                    ),
+                  )
+                  .slice(0, 5)
+                  .map((request) => (
+                    <div
+                      key={request.leaveRequestId}
+                      className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_160px_160px_auto]"
+                    >
+                      <div>
+                        <p className="font-semibold text-primary-950">
+                          {formatLabel(request.leaveType)}
+                        </p>
+
+                        <p className="mt-1 text-sm leading-6 text-stone-500">
+                          {request.reason || "No reason provided"}
+                        </p>
+                      </div>
+
+                      <DetailValue
+                        label="Start Date"
+                        value={formatDate(request.startDate)}
+                      />
+
+                      <DetailValue
+                        label="End Date"
+                        value={formatDate(request.endDate)}
+                      />
+
+                      <StatusBadge value={request.requestStatus} />
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
+        </>
+      ) : (
+        <section className="mt-8 rounded-2xl border border-stone-200 bg-white px-6 py-14 text-center">
+          <UserRound className="mx-auto h-8 w-8 text-stone-400" />
+
+          <h2 className="mt-4 font-semibold text-primary-950">
+            Staff member not found
+          </h2>
+
+          <p className="mt-2 text-sm text-stone-600">
+            No employee record is available for ID {staffId}.
+          </p>
+        </section>
+      )}
     </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <section className="mt-8 rounded-2xl border border-stone-200 bg-white px-6 py-16 text-center">
+      <RefreshCw className="mx-auto h-7 w-7 animate-spin text-primary-700" />
+
+      <p className="mt-4 font-semibold text-primary-950">
+        Loading staff details...
+      </p>
+    </section>
   );
 }
 
@@ -238,22 +508,18 @@ function InfoCard({ icon: Icon, title, description, items }) {
 
       <div className="mt-7 grid gap-6 sm:grid-cols-2">
         {items.map(([label, value]) => (
-          <div key={label}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-              {label}
-            </p>
-
-            <p className="mt-2 break-words font-medium text-primary-950">
-              {value || "—"}
-            </p>
-          </div>
+          <DetailValue
+            key={label}
+            label={label}
+            value={value}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function OverviewCard({ icon: Icon, label }) {
+function OverviewCard({ icon: Icon, label, value }) {
   return (
     <div className="rounded-xl bg-stone-50 p-4">
       <Icon className="h-5 w-5 text-primary-700" />
@@ -263,9 +529,83 @@ function OverviewCard({ icon: Icon, label }) {
       </p>
 
       <p className="mt-1 text-xl font-bold text-primary-950">
-        —
+        {value}
       </p>
     </div>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, description }) {
+  return (
+    <div className="border-b border-stone-200 p-6">
+      <div className="flex items-start gap-3">
+        <Icon className="mt-1 h-5 w-5 text-primary-700" />
+
+        <div>
+          <h2 className="text-lg font-semibold text-primary-950">
+            {title}
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-stone-600">
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailValue({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+        {label}
+      </p>
+
+      <p className="mt-2 break-words font-medium text-primary-950">
+        {value ?? "—"}
+      </p>
+    </div>
+  );
+}
+
+function StatusBadge({ value }) {
+  const normalizedValue = String(value || "").toUpperCase();
+
+  const successfulStatuses = [
+    "ACTIVE",
+    "APPROVED",
+    "COMPLETED",
+    "PRESENT",
+    "SCHEDULED",
+  ];
+
+  const warningStatuses = [
+    "PENDING",
+    "IN_PROGRESS",
+    "LATE",
+  ];
+
+  let classes = "bg-stone-100 text-stone-700";
+
+  if (successfulStatuses.includes(normalizedValue)) {
+    classes = "bg-emerald-100 text-emerald-800";
+  } else if (warningStatuses.includes(normalizedValue)) {
+    classes = "bg-amber-100 text-amber-800";
+  } else if (
+    ["REJECTED", "CANCELLED", "ABSENT"].includes(
+      normalizedValue,
+    )
+  ) {
+    classes = "bg-red-100 text-red-800";
+  }
+
+  return (
+    <span
+      className={`h-fit w-fit rounded-full px-3 py-1 text-xs font-semibold ${classes}`}
+    >
+      {formatLabel(value)}
+    </span>
   );
 }
 
@@ -285,20 +625,68 @@ function EmptySection({ icon: Icon, title, text }) {
   );
 }
 
-function FlowStep({ number, title, text }) {
+function formatLabel(value) {
+  if (!value) {
+    return "—";
+  }
+
+  return String(value)
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-LK", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatTime(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const [hour = "0", minute = "0"] = String(value).split(":");
+  const date = new Date();
+
+  date.setHours(Number(hour), Number(minute), 0, 0);
+
+  return new Intl.DateTimeFormat("en-LK", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function compareDates(firstValue, secondValue) {
+  return String(firstValue || "").localeCompare(
+    String(secondValue || ""),
+  );
+}
+
+function getErrorMessage(error) {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === "string") {
+    return responseData;
+  }
+
   return (
-    <div>
-      <p className="text-sm font-bold text-gold-400">
-        {number}
-      </p>
-
-      <h3 className="mt-2 font-semibold">
-        {title}
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-stone-300">
-        {text}
-      </p>
-    </div>
+    responseData?.message ||
+    responseData?.detail ||
+    error?.message ||
+    "An unexpected server error occurred."
   );
 }

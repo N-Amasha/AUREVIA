@@ -39,6 +39,13 @@ public class ShiftController {
                 .body(shiftService.createShift(request));
     }
 
+    @GetMapping
+    public ResponseEntity<List<ShiftResponse>> getAllShifts() {
+        return ResponseEntity.ok(
+                shiftService.getAllShifts()
+        );
+    }
+
     @GetMapping("/{shiftId}")
     public ShiftResponse getShiftById(
             @PathVariable Integer shiftId
