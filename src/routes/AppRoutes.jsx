@@ -11,6 +11,10 @@ import HRManagerLayout from "../layouts/HRManagerLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import MyShiftsPage from "../pages/staff/MyShiftsPage";
+
+import StaffLayout from "../layouts/StaffLayout";
+import StaffSelfServiceDashboardPage from "../pages/staff/StaffSelfServiceDashboardPage";
 
 // Public Pages
 import HomePage from "../pages/public/HomePage";
@@ -88,6 +92,9 @@ import StaffAssignmentsPage from "../pages/staff/StaffAssignmentsPage";
 import AttendanceManagementPage from "../pages/staff/AttendanceManagementPage";
 import LeaveRequestsPage from "../pages/staff/LeaveRequestsPage";
 import StaffAllocationPage from "../pages/staff/StaffAllocationPage";
+import MyAssignmentsPage from "../pages/staff/MyAssignmentsPage";
+import MyAttendancePage from "../pages/staff/MyAttendancePage";
+import MyLeavePage from "../pages/staff/MyLeavePage";
 
 // Admin
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
@@ -362,6 +369,51 @@ export default function AppRoutes() {
           element={<ReorderRecommendationsPage />}
         />
       </Route>
+
+        {/* ================= STAFF SELF-SERVICE ================= */}
+<Route
+  path="staff"
+  element={
+    <ProtectedRoute
+      allowedRoles={[
+        "RESTAURANT_STAFF",
+        "EMPLOYEE",
+      ]}
+    >
+      <StaffLayout />
+    </ProtectedRoute>
+  }
+>
+  <Route
+    index
+    element={<StaffSelfServiceDashboardPage />}
+  />
+
+    <Route
+      path="shifts"
+      element={<MyShiftsPage />}
+    />
+
+    <Route
+      path="assignments"
+      element={<MyAssignmentsPage />}
+    />
+
+    <Route
+      path="attendance"
+      element={<MyAttendancePage />}
+    />
+
+    <Route
+      path="leave"
+      element={<MyLeavePage />}
+    />
+  </Route>
+
+
+
+
+
 
       {/* ================= HR ================= */}
       <Route

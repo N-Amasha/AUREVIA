@@ -40,6 +40,30 @@ public class EmployeeService {
         return toResponse(findEmployee(employeeId));
     }
 
+    public EmployeeResponse getCurrentEmployee(
+        String email
+) {
+    if (email == null || email.isBlank()) {
+        throw new IllegalArgumentException(
+                "Authenticated employee email is required."
+        );
+    }
+
+    Employee employee = employeeRepository
+            .findByUserAccountEmailIgnoreCase(
+                    email.trim()
+            )
+            .orElseThrow(() ->
+                    new ResourceNotFoundException(
+                            "Employee",
+                            "email",
+                            email
+                    )
+            );
+
+    return toResponse(employee);
+}
+
     public List<EmployeeResponse> getEmployeesByStatus(
             String employmentStatus
     ) {

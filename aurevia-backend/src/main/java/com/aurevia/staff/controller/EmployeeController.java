@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.security.Principal;
 
 import java.util.List;
 
@@ -32,6 +33,18 @@ public class EmployeeController {
                 employeeService.getAllEmployees()
         );
     }
+
+    @GetMapping("/me")
+public ResponseEntity<EmployeeResponse>
+getCurrentEmployee(
+        Principal principal
+) {
+    return ResponseEntity.ok(
+            employeeService.getCurrentEmployee(
+                    principal.getName()
+            )
+    );
+}
 
     @GetMapping("/{employeeId}")
     public ResponseEntity<EmployeeResponse>

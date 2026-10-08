@@ -157,3 +157,11 @@ export async function reviewLeaveRequest(
 
   return response.data;
 }
+
+export async function getCurrentEmployee() {
+  const response = await axiosClient.get(
+    "/api/employees/me",
+  );
+
+  return response.data;
+}

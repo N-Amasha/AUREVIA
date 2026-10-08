@@ -22,7 +22,8 @@ const ROLE_HOME_ROUTES = {
   HR_MANAGER: "/hr",
   RESTAURANT_MANAGER: "/restaurant-manager",
   CHEF: "/chef",
-  RESTAURANT_STAFF: "/",
+  RESTAURANT_STAFF: "/staff",
+EMPLOYEE: "/staff",
 };
 
 export default function LoginPage() {
